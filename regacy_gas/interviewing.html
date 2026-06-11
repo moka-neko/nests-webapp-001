@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <body>
+    <p><?= name ?>さんの履歴書を合格とし、</p>
+    <p>面接日程調整用メールを送信します。</p>
+    <p>よろしいですか？</p>
+    <button
+      onclick="google.script.run.withSuccessHandler(closeDialog).execMensetsuProcess(<?= row ?>)"
+    >
+      OK
+    </button>
+    <button onclick="closeDialog()">キャンセル</button>
+
+    <script>
+      function closeDialog() {
+        google.script.host.close();
+      }
+    </script>
+  </body>
+</html>

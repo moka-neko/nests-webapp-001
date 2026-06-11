@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <body>
+    <p><?= name ?>さんを採用します。</p>
+    <p>よろしいですか？</p>
+    <button
+      onclick="google.script.run.withSuccessHandler(closeDialog).execSaiyoProcess(<?= row ?>)"
+    >
+      OK
+    </button>
+    <button onclick="closeDialog()">キャンセル</button>
+
+    <script>
+      function closeDialog() {
+        google.script.host.close();
+      }
+    </script>
+  </body>
+</html>

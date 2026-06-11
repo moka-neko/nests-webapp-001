@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// 先生応募データ（旧GASスプレッドシート「先生応募一覧」に対応）
+model TeacherApplication {
+  id              String                   @id @default(uuid())
+  email           String
+  nameKanji       String
+  nameKatakana    String
+  age             Int
+  workLocation    String
+  resumeUrl       String
+  questions       String?
+  status          TeacherApplicationStatus @default(PENDING)
+  lineDisplayName String? // LINEログイン後に追記
+  lineUserId      String? // LINEログイン後に追記
+  meetingUrl      String? // TimeRex Webhook後に追記
+  submittedAt     DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+}
+
+enum TeacherApplicationStatus {
+  PENDING
+  INTERVIEW
+  HIRED
+  REJECTED
+}
+
+// 生徒応募データ（Googleフォーム「生徒募集」に対応）
+model StudentApplication {
+  id          String   @id @default(uuid())
+  email       String
+  name        String
+  phoneNumber String
+  nationality String
+  questions   String?
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

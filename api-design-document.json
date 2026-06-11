@@ -1,0 +1,800 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["App"]
+      }
+    },
+    "/api/v1/teachers/applications": {
+      "post": {
+        "description": "先生の新規応募を受け付け、データベースへ保存する。運営グループへのLINE通知と、応募者への確認メール送信を行う。",
+        "operationId": "TeachersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeacherApplicationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "応募の受け付けに成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherApplicationResponseDto"
+                }
+              }
+            }
+          },
+          "400": { "description": "リクエストパラメータが不正" }
+        },
+        "summary": "先生の新規応募",
+        "tags": ["teachers"]
+      },
+      "get": {
+        "description": "先生の応募データ一覧を取得する。",
+        "operationId": "TeachersController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "一覧取得に成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeacherApplicationResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "先生の応募データ一覧取得",
+        "tags": ["teachers"]
+      }
+    },
+    "/api/v1/teachers/applications/{id}/status": {
+      "patch": {
+        "description": "先生の選考ステータス（採用・不採用・面接実施）を更新し、結果に応じたメール送信およびLINE個別通知を行う。",
+        "operationId": "TeachersController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "先生応募ID（UUID）",
+            "schema": { "example": "a1b2c3d4-...", "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeacherStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ステータス更新に成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherApplicationResponseDto"
+                }
+              }
+            }
+          },
+          "404": { "description": "指定したIDの応募データが存在しない" }
+        },
+        "summary": "先生の選考ステータス更新",
+        "tags": ["teachers"]
+      }
+    },
+    "/api/v1/teachers/applications/{id}": {
+      "put": {
+        "description": "先生の基本情報（名前、年齢、勤務場所、履歴書URLなど）を修正する。",
+        "operationId": "TeachersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "先生応募ID（UUID）",
+            "schema": { "example": "a1b2c3d4-...", "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeacherApplicationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新に成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherApplicationResponseDto"
+                }
+              }
+            }
+          },
+          "404": { "description": "指定したIDの応募データが存在しない" }
+        },
+        "summary": "先生の基本情報更新",
+        "tags": ["teachers"]
+      },
+      "delete": {
+        "description": "指定した先生の応募データを削除する。",
+        "operationId": "TeachersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "先生応募ID（UUID）",
+            "schema": { "example": "a1b2c3d4-...", "type": "string" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "削除に成功" },
+          "404": { "description": "指定したIDの応募データが存在しない" }
+        },
+        "summary": "先生の応募データ削除",
+        "tags": ["teachers"]
+      }
+    },
+    "/api/v1/students/applications": {
+      "post": {
+        "description": "生徒の新規応募を受け付け、データベースへ保存する。運営グループへの通知等を行う。",
+        "operationId": "StudentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStudentApplicationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "応募の受け付けに成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentApplicationResponseDto"
+                }
+              }
+            }
+          },
+          "400": { "description": "リクエストパラメータが不正" }
+        },
+        "summary": "生徒の新規応募",
+        "tags": ["students"]
+      },
+      "get": {
+        "description": "生徒の応募データ一覧を取得する。",
+        "operationId": "StudentsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "一覧取得に成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StudentApplicationResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "生徒の応募データ一覧取得",
+        "tags": ["students"]
+      }
+    },
+    "/api/v1/students/applications/{id}": {
+      "put": {
+        "description": "生徒の基本情報（名前、電話番号、国籍など）を修正する。",
+        "operationId": "StudentsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "生徒応募ID（UUID）",
+            "schema": { "example": "b2c3d4e5-...", "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStudentApplicationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新に成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentApplicationResponseDto"
+                }
+              }
+            }
+          },
+          "404": { "description": "指定したIDの応募データが存在しない" }
+        },
+        "summary": "生徒の基本情報更新",
+        "tags": ["students"]
+      },
+      "delete": {
+        "description": "指定した生徒の応募データを削除する。",
+        "operationId": "StudentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "生徒応募ID（UUID）",
+            "schema": { "example": "b2c3d4e5-...", "type": "string" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "削除に成功" },
+          "404": { "description": "指定したIDの応募データが存在しない" }
+        },
+        "summary": "生徒の応募データ削除",
+        "tags": ["students"]
+      }
+    },
+    "/api/v1/auth/line/login": {
+      "get": {
+        "description": "LINEログインの認証画面URLを組み立て、対象のユーザー（先生など）をLINE公式の認可画面へリダイレクトさせる。",
+        "operationId": "AuthController_lineLogin",
+        "parameters": [
+          {
+            "name": "userType",
+            "required": false,
+            "in": "query",
+            "description": "対象ユーザー種別",
+            "schema": {
+              "example": "teacher",
+              "type": "string",
+              "enum": ["teacher", "student"]
+            }
+          },
+          {
+            "name": "redirectUri",
+            "required": false,
+            "in": "query",
+            "description": "LINE認証完了後のコールバックURL（省略時はデフォルトを使用）",
+            "schema": {
+              "example": "https://example.com/auth/line/callback",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": { "description": "LINE認証画面へリダイレクト" },
+          "400": { "description": "リクエストパラメータが不正" }
+        },
+        "summary": "LINEログイン開始",
+        "tags": ["auth"]
+      }
+    },
+    "/api/v1/auth/line/callback": {
+      "get": {
+        "description": "LINEでの許可完了後、認可コード（code）を受け取る。LINE APIと通信してLINE IDを取得し、データベースのユーザー情報と紐づけて保存する。",
+        "operationId": "AuthController_lineCallback",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "description": "LINEが発行する認可コード",
+            "schema": { "example": "abc123xyz", "type": "string" }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "description": "CSRF対策のステートトークン",
+            "schema": { "example": "random-state-token", "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "LINE連携に成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LineCallbackResponseDto"
+                }
+              }
+            }
+          },
+          "400": { "description": "認可コードが不正または期限切れ" },
+          "404": { "description": "対象ユーザーが存在しない" }
+        },
+        "summary": "LINEコールバック処理",
+        "tags": ["auth"]
+      }
+    },
+    "/api/v1/webhooks/timerex": {
+      "post": {
+        "description": "TimeRexからの面接予約完了通知を受け取る。データ内のGoogle Meet等のURLを記録し、対象ユーザーへの個別LINE通知と運営グループへの予約完了通知を行う。",
+        "operationId": "WebhooksController_receiveTimerex",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TimerexWebhookDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "通知の受け取りに成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimerexWebhookResponseDto"
+                }
+              }
+            }
+          },
+          "400": { "description": "リクエストペイロードが不正" }
+        },
+        "summary": "TimeRex面接予約完了通知",
+        "tags": ["webhooks"]
+      }
+    }
+  },
+  "info": {
+    "title": "塾 応募管理 API",
+    "description": "先生・生徒の新規応募受付、選考ステータス管理、LINE連携、面接予約通知を行う REST API です。",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "CreateTeacherApplicationDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "メールアドレス（確認メールの送信先）",
+            "example": "yamada@example.com"
+          },
+          "nameKanji": {
+            "type": "string",
+            "description": "お名前（漢字）",
+            "example": "山田 太郎"
+          },
+          "nameKatakana": {
+            "type": "string",
+            "description": "お名前（カタカナ）",
+            "example": "ヤマダ タロウ"
+          },
+          "age": {
+            "type": "number",
+            "description": "年齢",
+            "example": 25,
+            "minimum": 18,
+            "maximum": 80
+          },
+          "workLocation": {
+            "type": "string",
+            "description": "勤務希望場所",
+            "example": "東京都渋谷区"
+          },
+          "resumeUrl": {
+            "type": "string",
+            "description": "履歴書URL（Google Drive等）",
+            "example": "https://drive.google.com/file/d/xxxxx"
+          },
+          "questions": {
+            "type": "string",
+            "description": "質問事項",
+            "example": "交通費支給はありますか？"
+          }
+        },
+        "required": [
+          "email",
+          "nameKanji",
+          "nameKatakana",
+          "age",
+          "workLocation",
+          "resumeUrl"
+        ]
+      },
+      "TeacherApplicationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "応募ID（UUID）",
+            "example": "a1b2c3d4-..."
+          },
+          "email": {
+            "type": "string",
+            "description": "メールアドレス",
+            "example": "yamada@example.com"
+          },
+          "nameKanji": {
+            "type": "string",
+            "description": "お名前（漢字）",
+            "example": "山田 太郎"
+          },
+          "nameKatakana": {
+            "type": "string",
+            "description": "お名前（カタカナ）",
+            "example": "ヤマダ タロウ"
+          },
+          "age": { "type": "number", "description": "年齢", "example": 25 },
+          "workLocation": {
+            "type": "string",
+            "description": "勤務希望場所",
+            "example": "東京都渋谷区"
+          },
+          "resumeUrl": {
+            "type": "string",
+            "description": "履歴書URL",
+            "example": "https://drive.google.com/file/d/xxxxx"
+          },
+          "questions": {
+            "type": "string",
+            "description": "質問事項",
+            "example": "交通費支給はありますか？",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "選考ステータス",
+            "enum": ["PENDING", "INTERVIEW", "HIRED", "REJECTED"],
+            "example": "PENDING"
+          },
+          "lineDisplayName": {
+            "type": "string",
+            "description": "LINE表示名（LINEログイン連携後に設定）",
+            "example": "山田 太郎",
+            "nullable": true
+          },
+          "lineUserId": {
+            "type": "string",
+            "description": "LINE userId（LINEログイン連携後に設定）",
+            "example": "Uxxxxxxxxxxxxxxxxx",
+            "nullable": true
+          },
+          "meetingUrl": {
+            "type": "string",
+            "description": "面接URL（TimeRex予約完了後に設定）",
+            "example": "https://meet.google.com/abc-defg-hij",
+            "nullable": true
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "応募日時（Googleフォーム回答日時）",
+            "example": "2026-06-01T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "最終更新日時",
+            "example": "2026-06-05T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "nameKanji",
+          "nameKatakana",
+          "age",
+          "workLocation",
+          "resumeUrl",
+          "status",
+          "submittedAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateTeacherStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "選考ステータス",
+            "enum": ["PENDING", "INTERVIEW", "HIRED", "REJECTED"],
+            "example": "HIRED"
+          }
+        },
+        "required": ["status"]
+      },
+      "UpdateTeacherApplicationDto": {
+        "type": "object",
+        "properties": {
+          "nameKanji": {
+            "type": "string",
+            "description": "お名前（漢字）",
+            "example": "山田 太郎"
+          },
+          "nameKatakana": {
+            "type": "string",
+            "description": "お名前（カタカナ）",
+            "example": "ヤマダ タロウ"
+          },
+          "age": {
+            "type": "number",
+            "description": "年齢",
+            "example": 25,
+            "minimum": 18,
+            "maximum": 80
+          },
+          "workLocation": {
+            "type": "string",
+            "description": "勤務希望場所",
+            "example": "東京都渋谷区"
+          },
+          "resumeUrl": {
+            "type": "string",
+            "description": "履歴書URL（Google Drive等）",
+            "example": "https://drive.google.com/file/d/xxxxx"
+          },
+          "questions": {
+            "type": "string",
+            "description": "質問事項",
+            "example": "交通費支給はありますか？"
+          }
+        },
+        "required": [
+          "nameKanji",
+          "nameKatakana",
+          "age",
+          "workLocation",
+          "resumeUrl"
+        ]
+      },
+      "CreateStudentApplicationDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "メールアドレス",
+            "example": "suzuki@example.com"
+          },
+          "name": {
+            "type": "string",
+            "description": "氏名",
+            "example": "鈴木 花子"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "電話番号",
+            "example": "090-9876-5432"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "国籍",
+            "example": "日本"
+          },
+          "questions": {
+            "type": "string",
+            "description": "質問・相談内容",
+            "example": "週に何回授業を受けられますか？"
+          }
+        },
+        "required": ["email", "name", "phoneNumber", "nationality"]
+      },
+      "StudentApplicationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "応募ID（UUID）",
+            "example": "b2c3d4e5-..."
+          },
+          "email": {
+            "type": "string",
+            "description": "メールアドレス",
+            "example": "suzuki@example.com"
+          },
+          "name": {
+            "type": "string",
+            "description": "氏名",
+            "example": "鈴木 花子"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "電話番号",
+            "example": "090-9876-5432"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "国籍",
+            "example": "日本"
+          },
+          "questions": {
+            "type": "string",
+            "description": "質問・相談内容",
+            "example": "週に何回授業を受けられますか？",
+            "nullable": true
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "応募日時（Googleフォーム回答日時）",
+            "example": "2026-06-01T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "最終更新日時",
+            "example": "2026-06-05T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "phoneNumber",
+          "nationality",
+          "submittedAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateStudentApplicationDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "氏名",
+            "example": "鈴木 花子"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "電話番号",
+            "example": "090-9876-5432"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "国籍",
+            "example": "日本"
+          },
+          "questions": {
+            "type": "string",
+            "description": "質問・相談内容",
+            "example": "週に何回授業を受けられますか？"
+          }
+        },
+        "required": ["name", "phoneNumber", "nationality"]
+      },
+      "LineCallbackResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "処理結果メッセージ",
+            "example": "LINE連携が完了しました。"
+          },
+          "userId": {
+            "type": "string",
+            "description": "DBのユーザーID（UUID）",
+            "example": "a1b2c3d4-..."
+          },
+          "lineUserId": {
+            "type": "string",
+            "description": "取得したLINEユーザーID",
+            "example": "Uxxxxxxxxxxxxxxxxx"
+          },
+          "lineDisplayName": {
+            "type": "string",
+            "description": "LINEの表示名",
+            "example": "山田 太郎"
+          }
+        },
+        "required": ["message", "userId", "lineUserId", "lineDisplayName"]
+      },
+      "TimerexWebhookDto": {
+        "type": "object",
+        "properties": {
+          "reservationId": {
+            "type": "string",
+            "description": "TimeRexの予約ID",
+            "example": "trx-reservation-00123"
+          },
+          "calendarTitle": {
+            "type": "string",
+            "description": "予約されたカレンダー（イベント）名",
+            "example": "先生面接（山田 太郎）"
+          },
+          "scheduledStartAt": {
+            "type": "string",
+            "description": "面接開始日時（ISO8601形式）",
+            "example": "2026-06-10T14:00:00+09:00"
+          },
+          "scheduledEndAt": {
+            "type": "string",
+            "description": "面接終了日時（ISO8601形式）",
+            "example": "2026-06-10T14:30:00+09:00"
+          },
+          "meetingUrl": {
+            "type": "string",
+            "description": "Google Meetなどのオンライン面接URL",
+            "example": "https://meet.google.com/abc-defg-hij"
+          },
+          "guestName": {
+            "type": "string",
+            "description": "予約者（先生候補）の氏名",
+            "example": "山田 太郎"
+          },
+          "guestEmail": {
+            "type": "string",
+            "description": "予約者のメールアドレス",
+            "example": "yamada@example.com"
+          },
+          "notes": {
+            "type": "string",
+            "description": "予約時の備考",
+            "example": "よろしくお願いします。"
+          }
+        },
+        "required": [
+          "reservationId",
+          "calendarTitle",
+          "scheduledStartAt",
+          "scheduledEndAt",
+          "meetingUrl",
+          "guestName",
+          "guestEmail"
+        ]
+      },
+      "TimerexWebhookResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "処理結果メッセージ",
+            "example": "予約通知を受け付けました。"
+          },
+          "reservationId": {
+            "type": "string",
+            "description": "受け取った予約ID",
+            "example": "trx-reservation-00123"
+          }
+        },
+        "required": ["message", "reservationId"]
+      }
+    }
+  }
+}
