@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { TotpService } from './totp.service';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AdminController],
-  providers: [AdminService, JwtStrategy],
+  providers: [AdminService, JwtStrategy, TotpService],
   exports: [JwtModule, PassportModule],
 })
 export class AdminModule {}

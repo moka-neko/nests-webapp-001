@@ -7,6 +7,10 @@ describe('AdminController', () => {
 
   const adminServiceMock = {
     login: jest.fn(),
+    verifyMfa: jest.fn(),
+    setupMfa: jest.fn(),
+    enableMfa: jest.fn(),
+    disableMfa: jest.fn(),
     getProfile: jest.fn(),
   };
 
