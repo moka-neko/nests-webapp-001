@@ -1,31 +1,65 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { LineService } from '../line/line.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { LineCallbackQueryDto } from './dto/line-callback-query.dto';
 import { LineCallbackResponseDto } from './dto/line-callback-response.dto';
 import { LineLoginQueryDto } from './dto/line-login-query.dto';
 
 @Injectable()
 export class AuthService {
-  /**
-   * API #4: LINEログイン認証URLを生成して返す（仮実装）
-   * 実装時は LINE_CHANNEL_ID / LINE_REDIRECT_URI などの環境変数を使って
-   * https://access.line.me/oauth2/v2.1/authorize?... を組み立てる。
-   */
-  getLineLoginUrl(_query: LineLoginQueryDto): { url: string } {
-    return {
-      url: 'https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=DUMMY',
-    };
+  private readonly logger = new Logger(AuthService.name);
+
+  constructor(
+    private readonly lineService: LineService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  /** API #4: LINEログイン認証URLを生成して返す */
+  getLineLoginUrl(query: LineLoginQueryDto): { url: string } {
+    const redirectUri = query.redirectUri ?? this.lineService.defaultRedirectUri;
+    const url = this.lineService.buildLoginUrl(query.email, redirectUri);
+    return { url };
   }
 
-  /**
-   * API #5: LINE認可コードを受け取り、LINE APIと通信してLINE IDを取得・保存する（仮実装）
-   * 実装時は LINE Channel Secret を用いてトークン取得・プロフィール取得を行う。
-   */
-  handleLineCallback(_query: LineCallbackQueryDto): LineCallbackResponseDto {
+  /** API #5: LINE認可コードを受け取り、LINE APIと通信してLINE IDを取得・保存する */
+  async handleLineCallback(
+    query: LineCallbackQueryDto,
+  ): Promise<LineCallbackResponseDto> {
+    const email = decodeURIComponent(query.state);
+    const redirectUri = this.lineService.defaultRedirectUri;
+
+    const token = await this.lineService.exchangeToken(
+      query.code,
+      redirectUri || undefined,
+    );
+    const profile = await this.lineService.getUserProfile(token.access_token);
+
+    const teacher = await this.prisma.teacherApplication.findFirst({
+      where: { email },
+    });
+
+    if (!teacher) {
+      this.logger.warn(`LINE callback: teacher not found for email=${email}`);
+      throw new NotFoundException('対象ユーザーが存在しない');
+    }
+
+    const updated = await this.prisma.teacherApplication.update({
+      where: { id: teacher.id },
+      data: {
+        lineUserId: profile.userId,
+        lineDisplayName: profile.displayName,
+      },
+    });
+
     return {
       message: 'LINE連携が完了しました。',
-      userId: 'user-uuid-0001',
-      lineUserId: 'Uxxxxxxxxxxxxxxxxx',
-      lineDisplayName: '山田 太郎',
+      userId: updated.id,
+      lineUserId: profile.userId,
+      lineDisplayName: profile.displayName,
     };
   }
 }

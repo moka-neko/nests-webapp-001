@@ -1,4 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { TeacherApplicationStatus } from '@prisma/client';
+import { LineService } from '../line/line.service';
+import { MailService } from '../mail/mail.service';
+import {
+  buildOperatorTeacherApplicationMessage,
+  buildTeacherHiredLineMessage,
+  buildTeacherRejectedLineMessage,
+} from '../notification/notification-templates';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTeacherApplicationDto } from './dto/create-teacher.dto';
 import { UpdateTeacherApplicationDto } from './dto/update-teacher.dto';
@@ -7,13 +15,25 @@ import { TeacherApplicationResponseDto } from './dto/teacher-application-respons
 
 @Injectable()
 export class TeachersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(TeachersService.name);
 
-  /** API #1: 先生の新規応募を受け付け、DBへ保存する */
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly lineService: LineService,
+    private readonly mailService: MailService,
+  ) {}
+
+  /** API #1: 先生の新規応募を受け付け、DBへ保存し通知を行う */
   async create(
     dto: CreateTeacherApplicationDto,
   ): Promise<TeacherApplicationResponseDto> {
-    return this.prisma.teacherApplication.create({ data: dto });
+    const record = await this.prisma.teacherApplication.create({ data: dto });
+
+    await this.notifyNewApplication(record).catch((err: unknown) => {
+      this.logger.error('Failed to send new application notifications', err);
+    });
+
+    return record;
   }
 
   /** API #7: 先生の応募データ一覧を取得する */
@@ -29,10 +49,16 @@ export class TeachersService {
     dto: UpdateTeacherStatusDto,
   ): Promise<TeacherApplicationResponseDto> {
     await this.findOneOrFail(id);
-    return this.prisma.teacherApplication.update({
+    const updated = await this.prisma.teacherApplication.update({
       where: { id },
       data: { status: dto.status },
     });
+
+    await this.notifyStatusChange(updated).catch((err: unknown) => {
+      this.logger.error('Failed to send status change notifications', err);
+    });
+
+    return updated;
   }
 
   /** API #8: 先生の基本情報を更新する */
@@ -61,5 +87,47 @@ export class TeachersService {
       throw new NotFoundException(`TeacherApplication id=${id} not found`);
     }
     return record;
+  }
+
+  private async notifyNewApplication(
+    record: TeacherApplicationResponseDto,
+  ): Promise<void> {
+    const groupMessage = buildOperatorTeacherApplicationMessage(
+      record.nameKanji,
+      record.email,
+      record.resumeUrl,
+    );
+    await this.lineService.pushMessageToGroup(groupMessage);
+    await this.mailService.sendTeacherApplicationConfirmation(record.email);
+  }
+
+  private async notifyStatusChange(
+    record: TeacherApplicationResponseDto,
+  ): Promise<void> {
+    switch (record.status) {
+      case TeacherApplicationStatus.INTERVIEW:
+        await this.mailService.sendTeacherInterviewNotification(record.email);
+        break;
+      case TeacherApplicationStatus.HIRED:
+        await this.mailService.sendTeacherHiredNotification(record.email);
+        if (record.lineUserId) {
+          await this.lineService.pushMessage(
+            record.lineUserId,
+            buildTeacherHiredLineMessage(),
+          );
+        }
+        break;
+      case TeacherApplicationStatus.REJECTED:
+        await this.mailService.sendTeacherRejectedNotification(record.email);
+        if (record.lineUserId) {
+          await this.lineService.pushMessage(
+            record.lineUserId,
+            buildTeacherRejectedLineMessage(),
+          );
+        }
+        break;
+      default:
+        break;
+    }
   }
 }

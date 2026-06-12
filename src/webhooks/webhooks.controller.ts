@@ -28,9 +28,9 @@ export class WebhooksController {
     type: TimerexWebhookResponseDto,
   })
   @ApiResponse({ status: 400, description: 'リクエストペイロードが不正' })
-  receiveTimerex(
+  async receiveTimerex(
     @Body() timerexWebhookDto: TimerexWebhookDto,
-  ): TimerexWebhookResponseDto {
+  ): Promise<TimerexWebhookResponseDto> {
     return this.webhooksService.receiveTimerex(timerexWebhookDto);
   }
 }

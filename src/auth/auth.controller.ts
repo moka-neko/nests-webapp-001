@@ -45,7 +45,9 @@ export class AuthController {
   })
   @ApiResponse({ status: 400, description: '認可コードが不正または期限切れ' })
   @ApiResponse({ status: 404, description: '対象ユーザーが存在しない' })
-  lineCallback(@Query() query: LineCallbackQueryDto): LineCallbackResponseDto {
+  async lineCallback(
+    @Query() query: LineCallbackQueryDto,
+  ): Promise<LineCallbackResponseDto> {
     return this.authService.handleLineCallback(query);
   }
 }

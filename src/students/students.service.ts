@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { LineService } from '../line/line.service';
+import { buildOperatorStudentApplicationMessage } from '../notification/notification-templates';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStudentApplicationDto } from './dto/create-student.dto';
 import { UpdateStudentApplicationDto } from './dto/update-student.dto';
@@ -6,13 +8,24 @@ import { StudentApplicationResponseDto } from './dto/student-application-respons
 
 @Injectable()
 export class StudentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(StudentsService.name);
 
-  /** API #3: 生徒の新規応募を受け付け、DBへ保存する */
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly lineService: LineService,
+  ) {}
+
+  /** API #3: 生徒の新規応募を受け付け、DBへ保存し運営へ通知する */
   async create(
     dto: CreateStudentApplicationDto,
   ): Promise<StudentApplicationResponseDto> {
-    return this.prisma.studentApplication.create({ data: dto });
+    const record = await this.prisma.studentApplication.create({ data: dto });
+
+    await this.notifyNewApplication(record).catch((err: unknown) => {
+      this.logger.error('Failed to send new student application notification', err);
+    });
+
+    return record;
   }
 
   /** API #10: 生徒の応募データ一覧を取得する */
@@ -48,5 +61,16 @@ export class StudentsService {
       throw new NotFoundException(`StudentApplication id=${id} not found`);
     }
     return record;
+  }
+
+  private async notifyNewApplication(
+    record: StudentApplicationResponseDto,
+  ): Promise<void> {
+    const message = buildOperatorStudentApplicationMessage(
+      record.name,
+      record.email,
+      record.phoneNumber,
+    );
+    await this.lineService.pushMessageToGroup(message);
   }
 }
