@@ -42,3 +42,13 @@ model StudentApplication {
   submittedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// 運営管理者（管理 API ログイン用）
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

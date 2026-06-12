@@ -1,5 +1,7 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { Public } from '../common/decorators/public.decorator';
+import { TimerexWebhookGuard } from '../common/guards/timerex-webhook.guard';
 import { WebhooksService } from './webhooks.service';
 import { TimerexWebhookDto } from './dto/timerex-webhook.dto';
 import { TimerexWebhookResponseDto } from './dto/timerex-webhook-response.dto';
@@ -15,6 +17,9 @@ export class WebhooksController {
    * Google Meet等のURLを記録し、対象ユーザーへのLINE個別通知と
    * 運営グループへの予約完了通知を行う。
    */
+  @Public()
+  @UseGuards(TimerexWebhookGuard)
+  @ApiSecurity('WebhookSecret', ['x-webhook-secret'])
   @Post('timerex')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
