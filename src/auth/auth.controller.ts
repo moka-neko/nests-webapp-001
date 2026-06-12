@@ -1,5 +1,6 @@
 import { Controller, Get, Query, Redirect } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { LineCallbackQueryDto } from './dto/line-callback-query.dto';
 import { LineCallbackResponseDto } from './dto/line-callback-response.dto';
@@ -14,6 +15,7 @@ export class AuthController {
    * API #4: GET /api/v1/auth/line/login
    * LINEログインの認証画面URLを組み立て、LINE公式の認可画面へリダイレクトさせる。
    */
+  @Public()
   @Get('line/login')
   @Redirect('', 302)
   @ApiOperation({
@@ -32,6 +34,7 @@ export class AuthController {
    * LINEでの許可完了後、認可コードを受け取りLINE APIと通信してLINE IDを取得。
    * データベースのユーザー情報と紐づけて保存する。
    */
+  @Public()
   @Get('line/callback')
   @ApiOperation({
     summary: 'LINEコールバック処理',

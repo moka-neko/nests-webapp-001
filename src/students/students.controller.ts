@@ -8,14 +8,25 @@ import {
   Put,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiSecurity,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+} from '@nestjs/swagger';
+import { Public } from '../common/decorators/public.decorator';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
 import { StudentsService } from './students.service';
 import { CreateStudentApplicationDto } from './dto/create-student.dto';
 import { UpdateStudentApplicationDto } from './dto/update-student.dto';
 import { StudentApplicationResponseDto } from './dto/student-application-response.dto';
 
 @ApiTags('students')
+@ApiBearerAuth('bearer')
 @Controller('api/v1/students/applications')
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
@@ -25,6 +36,9 @@ export class StudentsController {
    * 生徒の新規応募を受け付け、データベースへ保存。
    * 運営グループへの通知等を行う。
    */
+  @Public()
+  @UseGuards(ApiKeyGuard)
+  @ApiSecurity('ApiKey', ['x-api-key'])
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({

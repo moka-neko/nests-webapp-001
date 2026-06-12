@@ -9,8 +9,18 @@ import {
   Put,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiSecurity,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+} from '@nestjs/swagger';
+import { Public } from '../common/decorators/public.decorator';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
 import { TeachersService } from './teachers.service';
 import { CreateTeacherApplicationDto } from './dto/create-teacher.dto';
 import { UpdateTeacherApplicationDto } from './dto/update-teacher.dto';
@@ -18,6 +28,7 @@ import { UpdateTeacherStatusDto } from './dto/update-teacher-status.dto';
 import { TeacherApplicationResponseDto } from './dto/teacher-application-response.dto';
 
 @ApiTags('teachers')
+@ApiBearerAuth('bearer')
 @Controller('api/v1/teachers/applications')
 export class TeachersController {
   constructor(private readonly teachersService: TeachersService) {}
@@ -27,6 +38,9 @@ export class TeachersController {
    * 先生の新規応募を受け付け、データベースへ保存。
    * 運営グループへのLINE通知と、応募者への確認メール送信を行う。
    */
+  @Public()
+  @UseGuards(ApiKeyGuard)
+  @ApiSecurity('ApiKey', ['x-api-key'])
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
