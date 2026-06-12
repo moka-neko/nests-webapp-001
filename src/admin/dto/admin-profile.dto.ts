@@ -10,4 +10,7 @@ export class AdminProfileDto {
 
   @ApiProperty()
   name: string;
+
+  @ApiProperty({ description: 'Google Authenticator（TOTP）が有効か' })
+  totpEnabled: boolean;
 }

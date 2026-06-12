@@ -18,6 +18,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<AuthenticatedAdmin> {
+    if (payload.purpose === 'mfa') {
+      throw new UnauthorizedException('アクセストークンが必要です');
+    }
+
     const admin = await this.prisma.adminUser.findUnique({
       where: { id: payload.sub },
     });
