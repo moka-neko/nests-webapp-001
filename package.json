@@ -5,8 +5,17 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "build": "nest build",
+    "build:admin": "npm run build --workspace=admin",
+    "build:public": "npm run build --workspace=public",
+    "build:all": "npm run build && npm run build:admin && npm run build:public",
+    "dev:api": "nest start --watch",
+    "dev:admin": "npm run dev --workspace=admin",
+    "dev:public": "npm run dev --workspace=public",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

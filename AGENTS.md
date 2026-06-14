@@ -18,3 +18,8 @@ NestJS 11 REST API (`nest-api-project-01`) for managing teacher/student applicat
 
 ### Running
 - Dev server: `npm run start:dev` (watch mode) on port 3000. Swagger UI at `/api`. Example smoke test: `POST /api/v1/teachers/applications` then `GET /api/v1/teachers/applications`.
+- Frontend apps live under `apps/`:
+  - **API**: `npm run dev:api` (port 3000)
+  - **管理画面** (`apps/admin`, Vite + React): `npm run dev:admin` (port 5173). Set `VITE_API_BASE_URL=http://localhost:3000` in `apps/admin/.env`.
+  - **公開サイト** (`apps/public`, Next.js): `npm run dev:public` (port 3001). Set `NEXT_PUBLIC_API_BASE_URL=http://localhost:3000` in `apps/public/.env`.
+- Build all: `npm run build:all`
