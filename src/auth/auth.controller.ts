@@ -1,5 +1,13 @@
-import { Controller, Get, Query, Redirect } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpException,
+  Query,
+  Redirect,
+  Res,
+} from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { LineCallbackQueryDto } from './dto/line-callback-query.dto';
@@ -46,11 +54,44 @@ export class AuthController {
     description: 'LINE連携に成功',
     type: LineCallbackResponseDto,
   })
+  @ApiResponse({ status: 302, description: 'フロントエンドへリダイレクト' })
   @ApiResponse({ status: 400, description: '認可コードが不正または期限切れ' })
   @ApiResponse({ status: 404, description: '対象ユーザーが存在しない' })
   async lineCallback(
     @Query() query: LineCallbackQueryDto,
-  ): Promise<LineCallbackResponseDto> {
-    return this.authService.handleLineCallback(query);
+    @Res() res: Response,
+  ): Promise<void> {
+    const returnUrl = this.authService.parseReturnUrlFromState(query.state);
+
+    try {
+      const result = await this.authService.handleLineCallback(query);
+
+      if (result.returnUrl) {
+        const url = new URL(result.returnUrl);
+        url.searchParams.set('message', result.message);
+        url.searchParams.set('lineDisplayName', result.lineDisplayName);
+        res.redirect(url.toString());
+        return;
+      }
+
+      res.json(result);
+    } catch (error) {
+      if (returnUrl) {
+        const url = new URL(returnUrl.replace(/\/complete$/, '/error'));
+        const status =
+          error instanceof HttpException ? error.getStatus() : 500;
+        url.searchParams.set('status', String(status));
+        url.searchParams.set(
+          'message',
+          error instanceof HttpException
+            ? String(error.message)
+            : '認証に失敗しました。もう一度お試しください',
+        );
+        res.redirect(url.toString());
+        return;
+      }
+
+      throw error;
+    }
   }
 }

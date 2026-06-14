@@ -46,19 +46,43 @@ export class LineService {
   }
 
   /** LINE Login 認証 URL を組み立てる */
-  buildLoginUrl(email: string, redirectUri?: string): string {
+  buildLoginUrl(
+    email: string,
+    redirectUri?: string,
+    returnUrl?: string,
+  ): string {
     const uri = redirectUri ?? this.defaultRedirectUri;
     const clientId = this.channelId || 'DUMMY';
+
+    const state = returnUrl
+      ? Buffer.from(JSON.stringify({ email, returnUrl })).toString('base64url')
+      : email;
 
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: clientId,
       redirect_uri: uri,
       scope: 'openid profile',
-      state: email,
+      state,
     });
 
     return `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
+  }
+
+  /** state パラメータからメールアドレスと returnUrl を復元する */
+  parseOAuthState(state: string): { email: string; returnUrl?: string } {
+    const decoded = decodeURIComponent(state);
+    try {
+      const parsed = JSON.parse(
+        Buffer.from(decoded, 'base64url').toString('utf8'),
+      ) as { email?: string; returnUrl?: string };
+      if (parsed.email) {
+        return { email: parsed.email, returnUrl: parsed.returnUrl };
+      }
+    } catch {
+      // legacy: state is plain email
+    }
+    return { email: decoded };
   }
 
   /** 認可コードをアクセストークンに交換する */

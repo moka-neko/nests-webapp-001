@@ -43,6 +43,11 @@ export class TeachersService {
     });
   }
 
+  /** 先生の応募データを ID で取得する */
+  async findOne(id: string): Promise<TeacherApplicationResponseDto> {
+    return this.findOneOrFail(id);
+  }
+
   /** API #2: 先生の選考ステータスを更新し、メール/LINE通知を行う */
   async updateStatus(
     id: string,

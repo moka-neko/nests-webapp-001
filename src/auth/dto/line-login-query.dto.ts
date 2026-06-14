@@ -27,4 +27,13 @@ export class LineLoginQueryDto {
     example: 'https://example.com/auth/line/callback',
   })
   redirectUri?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description:
+      'LINE連携完了後にリダイレクトするフロントエンド URL（省略時は JSON レスポンス）',
+    example: 'http://localhost:3001/line-link/complete',
+  })
+  returnUrl?: string;
 }

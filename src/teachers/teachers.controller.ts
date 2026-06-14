@@ -79,6 +79,35 @@ export class TeachersController {
   }
 
   /**
+   * GET /api/v1/teachers/applications/{id}
+   * 先生の応募データを ID で取得する。
+   */
+  @Get(':id')
+  @ApiOperation({
+    summary: '先生の応募データ取得',
+    description: '指定した ID の先生応募データを取得する。',
+  })
+  @ApiParam({
+    name: 'id',
+    description: '先生応募ID（UUID）',
+    example: 'a1b2c3d4-...',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '取得成功',
+    type: TeacherApplicationResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: '指定したIDの応募データが存在しない',
+  })
+  async findOne(
+    @Param('id') id: string,
+  ): Promise<TeacherApplicationResponseDto> {
+    return this.teachersService.findOne(id);
+  }
+
+  /**
    * API #2: PATCH /api/v1/teachers/applications/{id}/status
    * 先生の選考ステータス（採用・不採用・面接実施）を更新し、
    * 結果に応じたメール送信およびLINE個別通知を行う。

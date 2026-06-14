@@ -12,6 +12,9 @@ describe('AuthService', () => {
     buildLoginUrl: jest.fn(),
     exchangeToken: jest.fn(),
     getUserProfile: jest.fn(),
+    parseOAuthState: jest.fn((state: string) => ({
+      email: decodeURIComponent(state),
+    })),
   };
 
   const prismaMock = {
@@ -53,6 +56,7 @@ describe('AuthService', () => {
       expect(lineServiceMock.buildLoginUrl).toHaveBeenCalledWith(
         'yamada@example.com',
         'http://localhost:3000/api/v1/auth/line/callback',
+        undefined,
       );
     });
   });

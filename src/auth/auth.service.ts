@@ -6,8 +6,8 @@ import {
 import { LineService } from '../line/line.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LineCallbackQueryDto } from './dto/line-callback-query.dto';
-import { LineCallbackResponseDto } from './dto/line-callback-response.dto';
 import { LineLoginQueryDto } from './dto/line-login-query.dto';
+import { LineCallbackResult } from './interfaces/line-callback-result.interface';
 
 @Injectable()
 export class AuthService {
@@ -21,15 +21,19 @@ export class AuthService {
   /** API #4: LINEログイン認証URLを生成して返す */
   getLineLoginUrl(query: LineLoginQueryDto): { url: string } {
     const redirectUri = query.redirectUri ?? this.lineService.defaultRedirectUri;
-    const url = this.lineService.buildLoginUrl(query.email, redirectUri);
+    const url = this.lineService.buildLoginUrl(
+      query.email,
+      redirectUri,
+      query.returnUrl,
+    );
     return { url };
   }
 
   /** API #5: LINE認可コードを受け取り、LINE APIと通信してLINE IDを取得・保存する */
   async handleLineCallback(
     query: LineCallbackQueryDto,
-  ): Promise<LineCallbackResponseDto> {
-    const email = decodeURIComponent(query.state);
+  ): Promise<LineCallbackResult> {
+    const { email, returnUrl } = this.lineService.parseOAuthState(query.state);
     const redirectUri = this.lineService.defaultRedirectUri;
 
     const token = await this.lineService.exchangeToken(
@@ -60,6 +64,11 @@ export class AuthService {
       userId: updated.id,
       lineUserId: profile.userId,
       lineDisplayName: profile.displayName,
+      returnUrl,
     };
+  }
+
+  parseReturnUrlFromState(state: string): string | undefined {
+    return this.lineService.parseOAuthState(state).returnUrl;
   }
 }
