@@ -104,6 +104,34 @@
       }
     },
     "/api/v1/teachers/applications/{id}": {
+      "get": {
+        "description": "指定 ID の先生応募データを取得する。",
+        "operationId": "TeachersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "先生応募ID（UUID）",
+            "schema": { "example": "a1b2c3d4-...", "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "詳細取得に成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherApplicationResponseDto"
+                }
+              }
+            }
+          },
+          "404": { "description": "指定したIDの応募データが存在しない" }
+        },
+        "summary": "先生の応募データ詳細取得",
+        "tags": ["teachers"]
+      },
       "put": {
         "description": "先生の基本情報（名前、年齢、勤務場所、履歴書URLなど）を修正する。",
         "operationId": "TeachersController_update",
@@ -217,6 +245,34 @@
       }
     },
     "/api/v1/students/applications/{id}": {
+      "get": {
+        "description": "指定 ID の生徒応募データを取得する。",
+        "operationId": "StudentsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "生徒応募ID（UUID）",
+            "schema": { "example": "b2c3d4e5-...", "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "詳細取得に成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentApplicationResponseDto"
+                }
+              }
+            }
+          },
+          "404": { "description": "指定したIDの応募データが存在しない" }
+        },
+        "summary": "生徒の応募データ詳細取得",
+        "tags": ["students"]
+      },
       "put": {
         "description": "生徒の基本情報（名前、電話番号、国籍など）を修正する。",
         "operationId": "StudentsController_update",

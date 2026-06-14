@@ -63,6 +63,33 @@ export class StudentsController {
   }
 
   /**
+   * API #14: GET /api/v1/students/applications/{id}
+   * 指定 ID の生徒応募データを取得する。
+   */
+  @Get(':id')
+  @ApiOperation({
+    summary: '生徒の応募データ詳細取得',
+    description: '指定 ID の生徒応募データを取得する。',
+  })
+  @ApiParam({
+    name: 'id',
+    description: '生徒応募ID（UUID）',
+    example: 'b2c3d4e5-...',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '詳細取得に成功',
+    type: StudentApplicationResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: '指定したIDの応募データが存在しない',
+  })
+  async findOne(@Param('id') id: string): Promise<StudentApplicationResponseDto> {
+    return this.studentsService.findOne(id);
+  }
+
+  /**
    * API #11: PUT /api/v1/students/applications/{id}
    * 生徒の基本情報（名前、電話番号、国籍など）を修正する。
    */

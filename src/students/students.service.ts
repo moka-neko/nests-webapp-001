@@ -22,6 +22,11 @@ export class StudentsService {
     });
   }
 
+  /** API #14: 指定 ID の生徒応募データを取得する */
+  async findOne(id: string): Promise<StudentApplicationResponseDto> {
+    return this.findOneOrFail(id);
+  }
+
   /** API #11: 生徒の基本情報を更新する */
   async update(
     id: string,
