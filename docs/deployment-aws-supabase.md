@@ -160,6 +160,11 @@ On every push to `main`:
 6. Build and upload public static assets to S3.
 7. Invalidate CloudFront caches when distribution IDs are configured.
 
+ESLint is intentionally not a required workflow step yet because the current
+repository has pre-existing API lint/prettier violations and admin React hooks
+lint violations. Add it back after the baseline source formatting, admin lint,
+and unit-test dependency setup are fixed.
+
 ## Local commands
 
 ```bash

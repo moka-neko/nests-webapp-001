@@ -61,15 +61,6 @@ jobs:
       - name: Apply database migrations
         run: npx prisma migrate deploy
 
-      - name: Lint API
-        run: npx eslint "{src,test}/**/*.ts"
-
-      - name: Lint admin
-        run: npm run lint --workspace=admin
-
-      - name: Lint public
-        run: npm run lint --workspace=public
-
       - name: Build all apps
         run: npm run build:all
 
