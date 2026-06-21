@@ -1,9 +1,9 @@
-name: Deploy
+name: Deploy development
 
 on:
   push:
     branches:
-      - main
+      - develop
   workflow_dispatch:
 
 permissions:
@@ -12,13 +12,13 @@ permissions:
 
 env:
   NODE_VERSION: "22"
-  AWS_REGION: ${{ vars.AWS_REGION }}
-  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
-  API_BASE_URL: ${{ vars.API_BASE_URL }}
-  ADMIN_S3_BUCKET: ${{ vars.ADMIN_S3_BUCKET }}
-  ADMIN_CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.ADMIN_CLOUDFRONT_DISTRIBUTION_ID }}
-  PUBLIC_S3_BUCKET: ${{ vars.PUBLIC_S3_BUCKET }}
-  PUBLIC_CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.PUBLIC_CLOUDFRONT_DISTRIBUTION_ID }}
+  AWS_REGION: ${{ vars.DEV_AWS_REGION }}
+  ECR_REPOSITORY: ${{ vars.DEV_ECR_REPOSITORY }}
+  API_BASE_URL: ${{ vars.DEV_API_BASE_URL }}
+  ADMIN_S3_BUCKET: ${{ vars.DEV_ADMIN_S3_BUCKET }}
+  ADMIN_CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.DEV_ADMIN_CLOUDFRONT_DISTRIBUTION_ID }}
+  PUBLIC_S3_BUCKET: ${{ vars.DEV_PUBLIC_S3_BUCKET }}
+  PUBLIC_CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.DEV_PUBLIC_CLOUDFRONT_DISTRIBUTION_ID }}
 
 jobs:
   verify:
@@ -78,14 +78,14 @@ jobs:
         run: npm run test:e2e
 
   deploy-api:
-    name: Deploy API to App Runner
+    name: Deploy development API to App Runner
     runs-on: ubuntu-latest
     needs: verify
     env:
-      APP_RUNNER_SERVICE_ARN: ${{ secrets.APP_RUNNER_SERVICE_ARN }}
-      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-      DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
-      DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
+      APP_RUNNER_SERVICE_ARN: ${{ secrets.DEV_APP_RUNNER_SERVICE_ARN }}
+      AWS_ROLE_TO_ASSUME: ${{ secrets.DEV_AWS_ROLE_TO_ASSUME }}
+      DATABASE_URL: ${{ secrets.DEV_SUPABASE_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DEV_SUPABASE_DIRECT_URL }}
 
     steps:
       - name: Checkout
@@ -100,10 +100,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Apply production migrations
+      - name: Apply development migrations
         run: |
-          : "${DATABASE_URL:?Set SUPABASE_DATABASE_URL repository secret}"
-          : "${DIRECT_URL:?Set SUPABASE_DIRECT_URL repository secret}"
+          : "${DATABASE_URL:?Set DEV_SUPABASE_DATABASE_URL repository secret}"
+          : "${DIRECT_URL:?Set DEV_SUPABASE_DIRECT_URL repository secret}"
           npx prisma migrate deploy
 
       - name: Configure AWS credentials
@@ -118,7 +118,7 @@ jobs:
 
       - name: Ensure ECR repository exists
         run: |
-          : "${ECR_REPOSITORY:?Set ECR_REPOSITORY repository variable}"
+          : "${ECR_REPOSITORY:?Set DEV_ECR_REPOSITORY repository variable}"
           aws ecr describe-repositories --repository-names "$ECR_REPOSITORY" >/dev/null 2>&1 \
             || aws ecr create-repository --repository-name "$ECR_REPOSITORY" >/dev/null
 
@@ -136,24 +136,24 @@ jobs:
 
       - name: Start App Runner deployment
         run: |
-          : "${APP_RUNNER_SERVICE_ARN:?Set APP_RUNNER_SERVICE_ARN repository secret}"
+          : "${APP_RUNNER_SERVICE_ARN:?Set DEV_APP_RUNNER_SERVICE_ARN repository secret}"
           aws apprunner start-deployment --service-arn "$APP_RUNNER_SERVICE_ARN"
 
       - name: Smoke test API
         run: |
           if [ -z "$API_BASE_URL" ]; then
-            echo "API_BASE_URL repository variable is not set; skipping smoke test."
+            echo "DEV_API_BASE_URL repository variable is not set; skipping smoke test."
             exit 0
           fi
           curl --fail --retry 10 --retry-delay 15 "$API_BASE_URL/health"
 
   deploy-admin:
-    name: Deploy admin to S3
+    name: Deploy development admin to S3
     runs-on: ubuntu-latest
     needs: verify
     env:
-      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-      VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
+      AWS_ROLE_TO_ASSUME: ${{ secrets.DEV_AWS_ROLE_TO_ASSUME }}
+      VITE_API_BASE_URL: ${{ vars.DEV_API_BASE_URL }}
 
     steps:
       - name: Checkout
@@ -170,7 +170,7 @@ jobs:
 
       - name: Build admin
         run: |
-          : "${VITE_API_BASE_URL:?Set API_BASE_URL repository variable}"
+          : "${VITE_API_BASE_URL:?Set DEV_API_BASE_URL repository variable}"
           npm run build:admin
 
       - name: Configure AWS credentials
@@ -181,7 +181,7 @@ jobs:
 
       - name: Sync admin assets
         run: |
-          : "${ADMIN_S3_BUCKET:?Set ADMIN_S3_BUCKET repository variable}"
+          : "${ADMIN_S3_BUCKET:?Set DEV_ADMIN_S3_BUCKET repository variable}"
           aws s3 sync apps/admin/dist "s3://$ADMIN_S3_BUCKET" --delete
           if [ -n "$ADMIN_CLOUDFRONT_DISTRIBUTION_ID" ]; then
             aws cloudfront create-invalidation \
@@ -190,13 +190,13 @@ jobs:
           fi
 
   deploy-public:
-    name: Deploy public site to S3
+    name: Deploy development public site to S3
     runs-on: ubuntu-latest
     needs: verify
     env:
-      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-      NEXT_PUBLIC_API_BASE_URL: ${{ vars.API_BASE_URL }}
-      NEXT_PUBLIC_PRIVACY_POLICY_URL: ${{ vars.NEXT_PUBLIC_PRIVACY_POLICY_URL }}
+      AWS_ROLE_TO_ASSUME: ${{ secrets.DEV_AWS_ROLE_TO_ASSUME }}
+      NEXT_PUBLIC_API_BASE_URL: ${{ vars.DEV_API_BASE_URL }}
+      NEXT_PUBLIC_PRIVACY_POLICY_URL: ${{ vars.DEV_NEXT_PUBLIC_PRIVACY_POLICY_URL }}
 
     steps:
       - name: Checkout
@@ -213,7 +213,7 @@ jobs:
 
       - name: Build public site
         run: |
-          : "${NEXT_PUBLIC_API_BASE_URL:?Set API_BASE_URL repository variable}"
+          : "${NEXT_PUBLIC_API_BASE_URL:?Set DEV_API_BASE_URL repository variable}"
           npm run build:public
 
       - name: Configure AWS credentials
@@ -224,7 +224,7 @@ jobs:
 
       - name: Sync public assets
         run: |
-          : "${PUBLIC_S3_BUCKET:?Set PUBLIC_S3_BUCKET repository variable}"
+          : "${PUBLIC_S3_BUCKET:?Set DEV_PUBLIC_S3_BUCKET repository variable}"
           aws s3 sync apps/public/out "s3://$PUBLIC_S3_BUCKET" --delete
           if [ -n "$PUBLIC_CLOUDFRONT_DISTRIBUTION_ID" ]; then
             aws cloudfront create-invalidation \
