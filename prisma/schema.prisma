@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 // 先生応募データ（旧GASスプレッドシート「先生応募一覧」に対応）

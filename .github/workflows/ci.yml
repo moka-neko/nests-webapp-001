@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app_test
+  DIRECT_URL: postgresql://postgres:postgres@localhost:5432/app_test
+  JWT_SECRET: ci-jwt-secret
+  MFA_ENCRYPTION_KEY: ci-mfa-encryption-key
+  ADMIN_EMAIL: ci-admin@example.com
+  ADMIN_PASSWORD: ci-password123
+  ADMIN_NAME: CI Admin
+  CORS_ORIGINS: http://localhost:3001,http://localhost:5173
+  NEXT_PUBLIC_API_BASE_URL: http://localhost:3000
+  VITE_API_BASE_URL: http://localhost:3000
+
+jobs:
+  verify:
+    name: Verify application
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Build all apps
+        run: npm run build:all
+
+      - name: Run API e2e tests
+        run: npm run test:e2e

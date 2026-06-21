@@ -1,0 +1,16 @@
+.git
+.github
+.next
+coverage
+dist
+node_modules
+npm-debug.log
+apps/admin/dist
+apps/admin/node_modules
+apps/public/.next
+apps/public/out
+apps/public/node_modules
+dev.db
+.env
+.env.*
+!.env.example
