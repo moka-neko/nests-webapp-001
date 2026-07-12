@@ -23,3 +23,9 @@ NestJS 11 REST API (`nest-api-project-01`) for managing teacher/student applicat
   - **管理画面** (`apps/admin`, Vite + React): `npm run dev:admin` (port 5173). Set `VITE_API_BASE_URL=http://localhost:3000` in `apps/admin/.env`.
   - **公開サイト** (`apps/public`, Next.js): `npm run dev:public` (port 3001). Set `NEXT_PUBLIC_API_BASE_URL=http://localhost:3000` in `apps/public/.env`.
 - Build all: `npm run build:all`
+- Docker / ECR (API image):
+  - `npm run docker:build` — local image `nests-api:local`
+  - `npm run docker:ecr:setup` — create ECR repo (needs `AWS_REGION`, `ECR_REPOSITORY`; see `.env.aws.example`)
+  - `npm run docker:ecr:push` — build and push to ECR (needs AWS CLI + Docker)
+  - Manual GitHub workflow: `.github/workflows/ecr-push.yml`
+  - Setup guide: `docs/deployment-aws-supabase.md` (Manual ECR image push)

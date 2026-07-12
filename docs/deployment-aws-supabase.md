@@ -207,3 +207,76 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/app_test \
 DIRECT_URL=postgresql://postgres:postgres@localhost:5432/app_test \
 npx prisma migrate deploy
 ```
+
+## Manual ECR image push
+
+Use this when you want to place the API Docker image in ECR before App Runner
+is wired up, or when testing image builds outside the `develop` deploy workflow.
+
+### Prerequisites
+
+1. AWS CLI installed and authenticated (`aws sts get-caller-identity`).
+2. Docker installed and running.
+3. IAM permissions for ECR push. See
+   `scripts/aws/iam/github-actions-ecr-policy.json` for a minimal policy
+   template.
+
+### 1. Create the ECR repository
+
+```bash
+cp .env.aws.example .env.aws
+# edit .env.aws
+
+set -a && source .env.aws && set +a
+npm run docker:ecr:setup
+```
+
+This creates the repository (if missing) and applies a lifecycle policy that
+keeps the last 10 images.
+
+### 2. Build and push the API image
+
+```bash
+set -a && source .env.aws && set +a
+npm run docker:ecr:push
+```
+
+By default the script tags the image with the current git short SHA and also
+pushes `latest`.
+
+Environment variables:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `AWS_REGION` | `ap-northeast-1` | AWS region |
+| `ECR_REPOSITORY` | required | ECR repository name |
+| `IMAGE_TAG` | git short SHA | Image tag to push |
+| `PUSH_LATEST` | `true` | Also push `:latest` |
+
+### 3. Push from GitHub Actions (manual)
+
+Workflow: `.github/workflows/ecr-push.yml`
+
+1. Configure `DEV_AWS_REGION`, `DEV_ECR_REPOSITORY`, and `DEV_AWS_ROLE_TO_ASSUME`.
+2. Open GitHub Actions and run **Push API image to ECR**.
+3. Optionally set a custom image tag.
+
+### 4. Verify the image in ECR
+
+```bash
+aws ecr describe-images \
+  --repository-name "$ECR_REPOSITORY" \
+  --region "$AWS_REGION" \
+  --query 'imageDetails[*].imageTags' \
+  --output table
+```
+
+### 5. Local Docker smoke test (optional)
+
+```bash
+npm run docker:build
+cp .env.example .env
+# set DATABASE_URL / DIRECT_URL for a reachable PostgreSQL database
+npm run docker:run
+curl http://localhost:3000/health
+```

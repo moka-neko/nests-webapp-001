@@ -26,7 +26,11 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "docker:build": "docker build -t nests-api:local .",
+    "docker:run": "docker run --rm -p 3000:3000 --env-file .env nests-api:local",
+    "docker:ecr:setup": "bash scripts/aws/ecr-create-repository.sh",
+    "docker:ecr:push": "bash scripts/aws/ecr-push-api.sh"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

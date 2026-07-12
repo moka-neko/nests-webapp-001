@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EcrAuth",
+      "Effect": "Allow",
+      "Action": ["ecr:GetAuthorizationToken"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EcrRepositoryManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:CompleteLayerUpload",
+        "ecr:CreateRepository",
+        "ecr:DescribeRepositories",
+        "ecr:DescribeImages",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:InitiateLayerUpload",
+        "ecr:ListImages",
+        "ecr:PutImage",
+        "ecr:PutLifecyclePolicy",
+        "ecr:UploadLayerPart"
+      ],
+      "Resource": "arn:aws:ecr:ap-northeast-1:ACCOUNT_ID:repository/ECR_REPOSITORY_NAME"
+    },
+    {
+      "Sid": "AppRunnerDeploy",
+      "Effect": "Allow",
+      "Action": ["apprunner:StartDeployment"],
+      "Resource": "arn:aws:apprunner:ap-northeast-1:ACCOUNT_ID:service/*"
+    }
+  ]
+}
