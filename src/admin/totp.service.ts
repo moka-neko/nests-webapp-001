@@ -38,7 +38,13 @@ export class TotpService {
   }
 
   async verifyCode(code: string, secret: string): Promise<boolean> {
-    const result = await verify({ secret, token: code });
+    // epochTolerance を指定しない場合、otplib はサーバーとクライアントの
+    // 時刻を厳密に同一の30秒ウィンドウとして比較する（許容誤差 0 秒）。
+    // そのため、ユーザーがコード表示から入力・送信するまでのわずかな遅延や
+    // 30秒境界をまたぐタイミングだけで、正しいコードでも「無効」と判定され
+    // てしまう。RFC 6238 が想定する伝送遅延・クロックドリフトを許容するため、
+    // 前後1ウィンドウ（±30秒）を許容する。
+    const result = await verify({ secret, token: code, epochTolerance: 30 });
     return result.valid;
   }
 
