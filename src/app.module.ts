@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { ApiKeyGuard } from './common/guards/api-key.guard';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { TimerexWebhookGuard } from './common/guards/timerex-webhook.guard';
+import { DevSeedModule } from './dev-seed/dev-seed.module';
 import { LineModule } from './line/line.module';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -24,6 +25,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     StudentsModule,
     AuthModule,
     WebhooksModule,
+    DevSeedModule,
   ],
   controllers: [AppController],
   providers: [
