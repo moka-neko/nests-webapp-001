@@ -1,18 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { clearMfaToken, getMfaToken, setAccessToken } from '../lib/auth';
 import type { LoginResponse } from '../lib/types';
 
+const DEFAULT_MFA_ERROR = '認証コードが正しくありません';
+
 export function MfaPage() {
   const navigate = useNavigate();
+  // sessionStorage を毎レンダーで直接読むと、送信中に clearMfaToken() を呼んだ
+  // 際に「トークンが無い」ガードが再発火してログイン画面へ強制的に戻される
+  // (認証に成功した直後も含めて) ため、マウント時に一度だけ読み込んで state
+  // として保持する。
+  const [mfaToken] = useState(() => getMfaToken());
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const mfaToken = getMfaToken();
+
+  useEffect(() => {
+    if (!mfaToken) {
+      navigate('/login', { replace: true });
+    }
+  }, [mfaToken, navigate]);
 
   if (!mfaToken) {
-    navigate('/login');
     return null;
   }
 
@@ -34,8 +45,19 @@ export function MfaPage() {
         clearMfaToken();
         navigate('/');
       }
-    } catch {
-      setError('認証コードが正しくありません');
+    } catch (err) {
+      // ハードコードされた汎用メッセージではなく、サーバーが返す実際の
+      // エラー内容（コード誤り／MFAトークン期限切れ等）をそのまま表示する。
+      const message = err instanceof Error ? err.message : DEFAULT_MFA_ERROR;
+      if (message.includes('MFA トークン')) {
+        // トークン自体が失効している場合、コードを再入力しても成功しない
+        // ためログイン画面からやり直してもらう。
+        clearMfaToken();
+        setError(`${message} ログイン画面からやり直してください。`);
+        setTimeout(() => navigate('/login'), 2000);
+        return;
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
