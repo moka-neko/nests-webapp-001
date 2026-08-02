@@ -30,20 +30,23 @@ function parseFieldErrors(message: string | string[]): Record<string, string> | 
   return Object.keys(errors).length > 0 ? errors : undefined;
 }
 
-async function handleResponse<T>(response: Response): Promise<T> {
-  if (response.status === 401) {
-    clearAccessToken();
-    if (!window.location.pathname.startsWith('/login')) {
-      window.location.href = '/login';
-    }
-    throw new ApiRequestError(401, '認証が必要です');
-  }
-
+async function handleResponse<T>(response: Response, auth: boolean): Promise<T> {
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ApiError;
     const message = Array.isArray(body.message)
       ? body.message.join(', ')
       : (body.message ?? response.statusText);
+
+    // 認証済みリクエストがトークン失効等で 401 になった場合のみ、
+    // トークンを破棄してログイン画面に戻す。ログイン／MFA検証自体の
+    // 401 はサーバーが返した具体的なエラー内容をそのまま表示する。
+    if (response.status === 401 && auth) {
+      clearAccessToken();
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
+    }
+
     throw new ApiRequestError(
       response.status,
       message,
@@ -79,5 +82,5 @@ export async function apiFetch<T>(
     headers,
   });
 
-  return handleResponse<T>(response);
+  return handleResponse<T>(response, auth);
 }
