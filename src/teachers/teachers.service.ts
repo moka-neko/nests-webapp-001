@@ -44,11 +44,12 @@ export class TeachersService {
       include: { resume: true },
     });
 
-    await this.notifyNewApplication(record).catch((err: unknown) => {
+    const response = toResponse(record);
+    await this.notifyNewApplication(response).catch((err: unknown) => {
       this.logger.error('Failed to send new application notifications', err);
     });
 
-    return toResponse(record);
+    return response;
   }
 
   /** API #7: 先生の応募データ一覧を取得する */
@@ -77,11 +78,12 @@ export class TeachersService {
       include: { resume: true },
     });
 
-    await this.notifyStatusChange(updated).catch((err: unknown) => {
+    const response = toResponse(updated);
+    await this.notifyStatusChange(response).catch((err: unknown) => {
       this.logger.error('Failed to send status change notifications', err);
     });
 
-    return toResponse(updated);
+    return response;
   }
 
   /** API #8: 先生の基本情報を更新する */
@@ -195,6 +197,28 @@ function toResumeData(
   };
 }
 
+/** Json 列に保存された学歴/職歴/資格をレスポンス型へ変換する */
+function toHistoryEntries(
+  value: Prisma.JsonValue | null,
+): TeacherResumeResponseDto['education'] {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const entries = value.flatMap((entry) => {
+    if (
+      typeof entry !== 'object' ||
+      entry === null ||
+      Array.isArray(entry) ||
+      typeof entry.yearMonth !== 'string' ||
+      typeof entry.description !== 'string'
+    ) {
+      return [];
+    }
+    return [{ yearMonth: entry.yearMonth, description: entry.description }];
+  });
+  return entries;
+}
+
 /** Prisma のレコードをレスポンス DTO へ変換する */
 function toResponse(
   record: TeacherApplicationWithResume,
@@ -203,7 +227,7 @@ function toResponse(
   return {
     ...rest,
     resume: resume
-      ? ({
+      ? {
           photoUrl: resume.photoUrl,
           birthDate: resume.birthDate,
           gender: resume.gender,
@@ -211,14 +235,14 @@ function toResponse(
           postalCode: resume.postalCode,
           address: resume.address,
           nearestStation: resume.nearestStation,
-          education: resume.education,
-          workHistory: resume.workHistory,
-          qualifications: resume.qualifications,
+          education: toHistoryEntries(resume.education),
+          workHistory: toHistoryEntries(resume.workHistory),
+          qualifications: toHistoryEntries(resume.qualifications),
           motivation: resume.motivation,
           selfPromotion: resume.selfPromotion,
           hobbies: resume.hobbies,
           requests: resume.requests,
-        } as TeacherResumeResponseDto)
+        }
       : null,
   };
 }
