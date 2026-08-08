@@ -61,6 +61,29 @@ DEV_SUPABASE_DIRECT_URL=postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-ap-nort
 Supabase Free plan is useful for development, but it has limits such as 500 MB
 database storage and project pausing after inactivity.
 
+### Supabase Storage bucket for teacher photos
+
+The teacher application form uploads a face photo (顔写真) to Supabase
+Storage through the API endpoint
+`POST /api/v1/teachers/applications/photo`.
+
+1. In the Supabase dashboard, open **Storage** and create a bucket named
+   `teacher-photos` (or any name you prefer).
+2. Mark the bucket as **Public** so the stored photo URLs
+   (`.../storage/v1/object/public/teacher-photos/...`) can be displayed in
+   the admin UI without signed URLs.
+3. Set these environment variables for the API:
+
+```text
+SUPABASE_URL=https://PROJECT_REF.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...   # Project Settings > API keys (server only)
+SUPABASE_STORAGE_BUCKET=teacher-photos
+```
+
+The API uploads with the service role key, so no Storage RLS policies are
+required for uploads. Keep the service role key server-side only; it must
+never be exposed to the frontend apps.
+
 ## Development AWS resources
 
 Create these resources before enabling the `develop` deployment workflow.

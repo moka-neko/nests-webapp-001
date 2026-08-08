@@ -117,6 +117,42 @@ export class DevSeedService implements OnModuleInit {
       data: teacherApplications,
       skipDuplicates: true,
     });
+
+    // 先頭の応募者にフォーム入力の履歴書サンプルを付与（管理画面の表示確認用）
+    await this.prisma.teacherResume.upsert({
+      where: { applicationId: 'a0000000-0000-4000-8000-000000000001' },
+      update: {},
+      create: {
+        id: 'c0000000-0000-4000-8000-000000000001',
+        applicationId: 'a0000000-0000-4000-8000-000000000001',
+        birthDate: '2001-04-01',
+        gender: '男性',
+        phoneNumber: '090-1234-5678',
+        postalCode: '150-0002',
+        address: '東京都渋谷区渋谷1-2-3',
+        nearestStation: 'JR山手線 渋谷駅',
+        education: [
+          { yearMonth: '2017-04', description: '都立○○高等学校 入学' },
+          { yearMonth: '2020-03', description: '都立○○高等学校 卒業' },
+          { yearMonth: '2020-04', description: '○○大学 教育学部 入学' },
+          { yearMonth: '2024-03', description: '○○大学 教育学部 卒業' },
+        ],
+        workHistory: [{ yearMonth: '2024-04', description: '株式会社○○ 入社' }],
+        qualifications: [
+          {
+            yearMonth: '2024-03',
+            description: '中学校教諭一種免許状（数学） 取得',
+          },
+        ],
+        motivation:
+          '大学時代の塾講師アルバイトの経験を活かし、子どもたちの学習を支えたいと考え応募しました。',
+        selfPromotion:
+          '3年間の塾講師経験があり、生徒一人ひとりに合わせた指導が得意です。',
+        hobbies: '読書、水泳',
+        requests: '週3日勤務を希望します。',
+      },
+    });
+
     return result.count;
   }
 

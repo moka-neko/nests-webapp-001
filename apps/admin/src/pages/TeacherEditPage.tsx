@@ -32,7 +32,7 @@ export function TeacherEditPage() {
         nameKatakana: data.nameKatakana,
         age: data.age,
         workLocation: data.workLocation,
-        resumeUrl: data.resumeUrl,
+        resumeUrl: data.resumeUrl ?? '',
         questions: data.questions ?? '',
       });
     }
@@ -44,6 +44,7 @@ export function TeacherEditPage() {
         method: 'PUT',
         body: JSON.stringify({
           ...form,
+          resumeUrl: form.resumeUrl || undefined,
           questions: form.questions || undefined,
         }),
       }),
@@ -77,17 +78,17 @@ export function TeacherEditPage() {
         </div>
         {(
           [
-            ['nameKanji', 'お名前（漢字）'],
-            ['nameKatakana', 'お名前（カタカナ）'],
-            ['workLocation', '勤務希望場所'],
-            ['resumeUrl', '履歴書 URL'],
+            ['nameKanji', 'お名前（漢字）', true],
+            ['nameKatakana', 'お名前（カタカナ）', true],
+            ['workLocation', '勤務希望場所', true],
+            ['resumeUrl', '履歴書 URL（旧形式・任意）', false],
           ] as const
-        ).map(([key, label]) => (
+        ).map(([key, label, isRequired]) => (
           <div key={key}>
             <label className="mb-1 block text-sm font-medium">{label}</label>
             <input
               type="text"
-              required
+              required={isRequired}
               value={form[key]}
               onChange={(e) => setForm({ ...form, [key]: e.target.value })}
               className="w-full rounded border border-slate-300 px-3 py-2"

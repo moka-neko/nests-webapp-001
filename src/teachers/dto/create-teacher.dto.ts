@@ -8,8 +8,10 @@ import {
   IsUrl,
   Max,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { TeacherResumeInputDto } from './teacher-resume.dto';
 
 /**
  * 先生の新規応募リクエスト（API #1: POST /api/v1/teachers/applications）
@@ -56,12 +58,22 @@ export class CreateTeacherApplicationDto {
   workLocation: string;
 
   @IsUrl()
-  @IsNotEmpty()
-  @ApiProperty({
-    description: '履歴書URL（Google Drive等）',
+  @IsOptional()
+  @ApiPropertyOptional({
+    description:
+      '履歴書URL（旧形式・Google Drive等。履歴書フォーム入力を使う場合は不要）',
     example: 'https://drive.google.com/file/d/xxxxx',
   })
-  resumeUrl: string;
+  resumeUrl?: string;
+
+  @ValidateNested()
+  @Type(() => TeacherResumeInputDto)
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: '履歴書（フォームに直接入力された内容）',
+    type: TeacherResumeInputDto,
+  })
+  resume?: TeacherResumeInputDto;
 
   @IsString()
   @IsOptional()

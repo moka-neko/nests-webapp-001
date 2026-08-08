@@ -55,6 +55,40 @@ export async function apiFetch<T>(
   return response.json() as Promise<T>;
 }
 
+/**
+ * 履歴書用の顔写真をアップロードし、公開 URL を返す。
+ * multipart/form-data のため apiFetch は使わない（Content-Type は自動設定させる）。
+ */
+export async function uploadTeacherPhoto(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('photo', file);
+
+  const headers = new Headers();
+  if (API_KEY) {
+    headers.set('x-api-key', API_KEY);
+  }
+
+  const response = await fetch(
+    `${API_BASE}/api/v1/teachers/applications/photo`,
+    {
+      method: 'POST',
+      headers,
+      body: formData,
+    },
+  );
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as ApiError;
+    const message = Array.isArray(body.message)
+      ? body.message.join(', ')
+      : (body.message ?? '顔写真のアップロードに失敗しました');
+    throw new ApiRequestError(response.status, message);
+  }
+
+  const result = (await response.json()) as { photoUrl: string };
+  return result.photoUrl;
+}
+
 export function getLineLoginUrl(email: string): string {
   const base = API_BASE;
   const returnUrl =

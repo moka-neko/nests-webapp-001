@@ -10,7 +10,13 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiSecurity,
@@ -18,20 +24,90 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { ApiKeyGuard } from '../common/guards/api-key.guard';
+import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { TeachersService } from './teachers.service';
 import { CreateTeacherApplicationDto } from './dto/create-teacher.dto';
 import { UpdateTeacherApplicationDto } from './dto/update-teacher.dto';
 import { UpdateTeacherStatusDto } from './dto/update-teacher-status.dto';
 import { TeacherApplicationResponseDto } from './dto/teacher-application-response.dto';
+import { UploadTeacherPhotoResponseDto } from './dto/upload-teacher-photo-response.dto';
+
+/** 顔写真の最大サイズ（5MB） */
+const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 
 @ApiTags('teachers')
 @ApiBearerAuth('bearer')
 @Controller('api/v1/teachers/applications')
 export class TeachersController {
-  constructor(private readonly teachersService: TeachersService) {}
+  constructor(
+    private readonly teachersService: TeachersService,
+    private readonly storageService: SupabaseStorageService,
+  ) {}
+
+  /**
+   * POST /api/v1/teachers/applications/photo
+   * 履歴書用の顔写真を Supabase Storage にアップロードし、公開URLを返す。
+   * 返却された photoUrl を応募リクエストの resume.photoUrl に設定して使用する。
+   */
+  @Public()
+  @UseGuards(ApiKeyGuard)
+  @ApiSecurity('ApiKey', ['x-api-key'])
+  @Post('photo')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('photo'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: '履歴書用の顔写真アップロード',
+    description:
+      '顔写真（JPEG/PNG/WebP、5MBまで）を Supabase Storage にアップロードし、公開URLを返す。返却された photoUrl を応募リクエストの resume.photoUrl に設定する。',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['photo'],
+      properties: {
+        photo: {
+          type: 'string',
+          format: 'binary',
+          description: '顔写真ファイル（JPEG/PNG/WebP、5MBまで）',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'アップロードに成功',
+    type: UploadTeacherPhotoResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'ファイル形式またはサイズが不正' })
+  @ApiResponse({
+    status: 503,
+    description: 'ストレージ未設定またはアップロード失敗',
+  })
+  async uploadPhoto(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: MAX_PHOTO_SIZE_BYTES }),
+          // file-type パッケージ（ESM）による magic number 検証は Jest 環境で
+          // 動作しないため、MIME タイプ文字列の検証のみ行う
+          new FileTypeValidator({
+            fileType: /^image\/(jpeg|png|webp)$/,
+            skipMagicNumbersValidation: true,
+          }),
+        ],
+      }),
+    )
+    photo: Express.Multer.File,
+  ): Promise<UploadTeacherPhotoResponseDto> {
+    const photoUrl = await this.storageService.uploadTeacherPhoto(photo);
+    return { photoUrl };
+  }
 
   /**
    * API #1: POST /api/v1/teachers/applications
