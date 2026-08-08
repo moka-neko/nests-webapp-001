@@ -63,9 +63,12 @@ export class SupabaseStorageService {
     const objectPath = `photos/${randomUUID()}.${extension}`;
     const uploadUrl = `${supabaseUrl}/storage/v1/object/${this.bucket}/${objectPath}`;
 
+    // Supabase Storage REST API は apikey と Authorization の両方が必要
+    // （SDK も同様に両方を付与する）
     const response = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
+        apikey: serviceRoleKey,
         Authorization: `Bearer ${serviceRoleKey}`,
         'Content-Type': file.mimetype,
         'x-upsert': 'false',
