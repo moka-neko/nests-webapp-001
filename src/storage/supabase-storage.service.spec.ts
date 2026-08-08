@@ -53,6 +53,7 @@ describe('SupabaseStorageService', () => {
       /^https:\/\/example\.supabase\.co\/storage\/v1\/object\/teacher-photos\/photos\/[0-9a-f-]+\.png$/,
     );
     expect(init.method).toBe('POST');
+    expect(init.headers.apikey).toBe('service-role-key');
     expect(init.headers.Authorization).toBe('Bearer service-role-key');
     expect(init.headers['Content-Type']).toBe('image/png');
     expect(url).toMatch(
