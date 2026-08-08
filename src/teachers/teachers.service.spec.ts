@@ -24,6 +24,7 @@ describe('TeachersService', () => {
     meetingUrl: null,
     submittedAt: new Date('2026-06-01T10:00:00.000Z'),
     updatedAt: new Date('2026-06-01T10:00:00.000Z'),
+    resume: null,
   };
 
   const prismaMock = {
@@ -90,6 +91,77 @@ describe('TeachersService', () => {
         mailServiceMock.sendTeacherApplicationConfirmation,
       ).toHaveBeenCalledWith('yamada@example.com');
     });
+
+    it('履歴書付きの応募を作成できる', async () => {
+      const resumeInput = {
+        photoUrl:
+          'https://xxxx.supabase.co/storage/v1/object/public/teacher-photos/photos/abc.jpg',
+        birthDate: '2000-04-01',
+        phoneNumber: '090-1234-5678',
+        address: '東京都渋谷区渋谷1-2-3',
+        education: [{ yearMonth: '2019-04', description: '○○大学 入学' }],
+        motivation: '子どもに教えることが好きだからです',
+      };
+      const mockResumeRecord = {
+        id: 'resume-uuid-1',
+        applicationId: mockTeacher.id,
+        photoUrl: resumeInput.photoUrl,
+        birthDate: resumeInput.birthDate,
+        gender: null,
+        phoneNumber: resumeInput.phoneNumber,
+        postalCode: null,
+        address: resumeInput.address,
+        nearestStation: null,
+        education: resumeInput.education,
+        workHistory: null,
+        qualifications: null,
+        motivation: resumeInput.motivation,
+        selfPromotion: null,
+        hobbies: null,
+        requests: null,
+        createdAt: new Date('2026-06-01T10:00:00.000Z'),
+        updatedAt: new Date('2026-06-01T10:00:00.000Z'),
+      };
+      prismaMock.teacherApplication.create.mockResolvedValue({
+        ...mockTeacher,
+        resumeUrl: null,
+        resume: mockResumeRecord,
+      });
+
+      const result = await service.create({
+        email: mockTeacher.email,
+        nameKanji: mockTeacher.nameKanji,
+        nameKatakana: mockTeacher.nameKatakana,
+        age: mockTeacher.age,
+        workLocation: mockTeacher.workLocation,
+        resume: resumeInput,
+      });
+
+      const createArgs = (
+        prismaMock.teacherApplication.create.mock.calls[0] as [
+          {
+            data: { resume?: { create: Record<string, unknown> } };
+            include: { resume: boolean };
+          },
+        ]
+      )[0];
+      expect(createArgs.include).toEqual({ resume: true });
+      expect(createArgs.data.resume?.create).toMatchObject({
+        photoUrl: resumeInput.photoUrl,
+        birthDate: resumeInput.birthDate,
+        education: resumeInput.education,
+      });
+      expect(result.resume).toEqual(
+        expect.objectContaining({
+          photoUrl: resumeInput.photoUrl,
+          birthDate: resumeInput.birthDate,
+          motivation: resumeInput.motivation,
+        }),
+      );
+      expect(lineServiceMock.pushMessageToGroup).toHaveBeenCalledWith(
+        expect.stringContaining('フォーム入力'),
+      );
+    });
   });
 
   describe('findAll', () => {
@@ -113,9 +185,9 @@ describe('TeachersService', () => {
         status: TeacherApplicationStatus.INTERVIEW,
       });
 
-      expect(mailServiceMock.sendTeacherInterviewNotification).toHaveBeenCalledWith(
-        'yamada@example.com',
-      );
+      expect(
+        mailServiceMock.sendTeacherInterviewNotification,
+      ).toHaveBeenCalledWith('yamada@example.com');
     });
 
     it('採用時にメールとLINE個別通知を送信する', async () => {

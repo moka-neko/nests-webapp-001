@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TeacherApplicationStatus } from '../enums/teacher-application-status.enum';
+import { TeacherResumeResponseDto } from './teacher-resume.dto';
 
 /**
  * 先生応募データのレスポンス
@@ -39,11 +40,20 @@ export class TeacherApplicationResponseDto {
   @ApiProperty({ description: '勤務希望場所', example: '東京都渋谷区' })
   workLocation: string;
 
-  @ApiProperty({
-    description: '履歴書URL',
+  @ApiPropertyOptional({
+    type: 'string',
+    description: '履歴書URL（旧形式）',
     example: 'https://drive.google.com/file/d/xxxxx',
+    nullable: true,
   })
-  resumeUrl: string;
+  resumeUrl: string | null;
+
+  @ApiPropertyOptional({
+    description: '履歴書（フォームに直接入力された内容）',
+    type: TeacherResumeResponseDto,
+    nullable: true,
+  })
+  resume: TeacherResumeResponseDto | null;
 
   @ApiPropertyOptional({
     type: 'string',

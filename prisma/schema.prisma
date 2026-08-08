@@ -14,7 +14,7 @@ model TeacherApplication {
   nameKatakana    String
   age             Int
   workLocation    String
-  resumeUrl       String
+  resumeUrl       String? // 旧形式（外部URL）。履歴書フォーム入力への移行に伴い任意化
   questions       String?
   status          TeacherApplicationStatus @default(PENDING)
   lineDisplayName String? // LINEログイン後に追記
@@ -22,6 +22,30 @@ model TeacherApplication {
   meetingUrl      String? // TimeRex Webhook後に追記
   submittedAt     DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
+  resume          TeacherResume?
+}
+
+// 先生応募の履歴書（フォームに直接入力された内容）
+model TeacherResume {
+  id             String             @id @default(uuid())
+  applicationId  String             @unique
+  application    TeacherApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  photoUrl       String? // 顔写真（Supabase Storage の公開URL）
+  birthDate      String? // 生年月日（YYYY-MM-DD）
+  gender         String? // 性別（任意回答）
+  phoneNumber    String? // 電話番号
+  postalCode     String? // 郵便番号
+  address        String? // 現住所
+  nearestStation String? // 最寄り駅
+  education      Json? // 学歴 [{ yearMonth, description }]
+  workHistory    Json? // 職歴 [{ yearMonth, description }]
+  qualifications Json? // 免許・資格 [{ yearMonth, description }]
+  motivation     String? // 志望動機
+  selfPromotion  String? // 自己PR
+  hobbies        String? // 趣味・特技
+  requests       String? // 本人希望記入欄
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 }
 
 enum TeacherApplicationStatus {

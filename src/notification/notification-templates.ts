@@ -28,9 +28,9 @@ export function buildTeacherApplicationConfirmationBody(email: string): string {
 export function buildOperatorTeacherApplicationMessage(
   nameKanji: string,
   email: string,
-  resumeUrl: string,
+  resumeUrl: string | null,
 ): string {
-  return `【新規先生応募】\n氏名: ${nameKanji}\nメール: ${email}\n履歴書: ${resumeUrl}`;
+  return `【新規先生応募】\n氏名: ${nameKanji}\nメール: ${email}\n履歴書: ${resumeUrl ?? 'フォーム入力（管理画面で確認）'}`;
 }
 
 export function buildOperatorStudentApplicationMessage(

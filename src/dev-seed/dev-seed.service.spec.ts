@@ -10,6 +10,9 @@ describe('DevSeedService', () => {
     teacherApplication: {
       createMany: jest.fn(),
     },
+    teacherResume: {
+      upsert: jest.fn(),
+    },
     studentApplication: {
       createMany: jest.fn(),
     },
@@ -19,6 +22,7 @@ describe('DevSeedService', () => {
     jest.clearAllMocks();
     process.env = { ...originalEnv };
     prismaMock.teacherApplication.createMany.mockResolvedValue({ count: 5 });
+    prismaMock.teacherResume.upsert.mockResolvedValue({});
     prismaMock.studentApplication.createMany.mockResolvedValue({ count: 5 });
 
     const module: TestingModule = await Test.createTestingModule({

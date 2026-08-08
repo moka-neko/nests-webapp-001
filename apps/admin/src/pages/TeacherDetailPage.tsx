@@ -91,21 +91,75 @@ export function TeacherDetailPage() {
           <Field label="年齢" value={String(data.age)} />
           <Field label="勤務希望場所" value={data.workLocation} />
           <Field
-            label="履歴書"
+            label="履歴書 URL（旧形式）"
             value={
-              <a
-                href={data.resumeUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-blue-600 hover:underline"
-              >
-                {data.resumeUrl}
-              </a>
+              data.resumeUrl ? (
+                <a
+                  href={data.resumeUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  {data.resumeUrl}
+                </a>
+              ) : (
+                '—'
+              )
             }
           />
           <Field label="質問事項" value={data.questions ?? '—'} className="sm:col-span-2" />
         </dl>
       </div>
+
+      {data.resume && (
+        <div className="mb-6 rounded-lg border border-slate-200 bg-white p-6">
+          <h2 className="mb-4 text-lg font-medium">履歴書</h2>
+          <div className="flex flex-col gap-6 sm:flex-row">
+            <div className="shrink-0">
+              {data.resume.photoUrl ? (
+                <a href={data.resume.photoUrl} target="_blank" rel="noreferrer">
+                  <img
+                    src={data.resume.photoUrl}
+                    alt={`${data.nameKanji} の顔写真`}
+                    className="h-40 w-32 rounded border border-slate-200 object-cover"
+                  />
+                </a>
+              ) : (
+                <div className="flex h-40 w-32 items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 text-xs text-slate-400">
+                  写真なし
+                </div>
+              )}
+            </div>
+            <dl className="grid flex-1 gap-3 sm:grid-cols-2">
+              <Field label="生年月日" value={data.resume.birthDate ?? '—'} />
+              <Field label="性別" value={data.resume.gender ?? '—'} />
+              <Field label="電話番号" value={data.resume.phoneNumber ?? '—'} />
+              <Field label="郵便番号" value={data.resume.postalCode ?? '—'} />
+              <Field
+                label="現住所"
+                value={data.resume.address ?? '—'}
+                className="sm:col-span-2"
+              />
+              <Field
+                label="最寄り駅"
+                value={data.resume.nearestStation ?? '—'}
+                className="sm:col-span-2"
+              />
+            </dl>
+          </div>
+          <div className="mt-6 space-y-4">
+            <HistoryList label="学歴" entries={data.resume.education} />
+            <HistoryList label="職歴" entries={data.resume.workHistory} />
+            <HistoryList label="免許・資格" entries={data.resume.qualifications} />
+          </div>
+          <dl className="mt-6 grid gap-3">
+            <Field label="志望動機" value={data.resume.motivation ?? '—'} />
+            <Field label="自己PR" value={data.resume.selfPromotion ?? '—'} />
+            <Field label="趣味・特技" value={data.resume.hobbies ?? '—'} />
+            <Field label="本人希望記入欄" value={data.resume.requests ?? '—'} />
+          </dl>
+        </div>
+      )}
 
       <div className="rounded-lg border border-slate-200 bg-white p-6">
         <h2 className="mb-4 text-lg font-medium">選考・連携情報</h2>
@@ -182,6 +236,36 @@ export function TeacherDetailPage() {
         onConfirm={() => deleteMutation.mutate()}
         onCancel={() => setDeleteOpen(false)}
       />
+    </div>
+  );
+}
+
+function HistoryList({
+  label,
+  entries,
+}: {
+  label: string;
+  entries: { yearMonth: string; description: string }[] | null;
+}) {
+  return (
+    <div>
+      <p className="text-sm text-slate-500">{label}</p>
+      {entries && entries.length > 0 ? (
+        <table className="mt-1 w-full text-sm">
+          <tbody>
+            {entries.map((entry, index) => (
+              <tr key={index} className="border-b border-slate-100">
+                <td className="w-28 py-1 pr-4 text-slate-500">
+                  {entry.yearMonth}
+                </td>
+                <td className="py-1">{entry.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="mt-1 text-sm">—</p>
+      )}
     </div>
   );
 }
