@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LineService } from '../line/line.service';
+import { MailService } from '../mail/mail.service';
 import {
   buildInterviewMeetingLineMessage,
   buildOperatorInterviewScheduledMessage,
@@ -15,9 +16,10 @@ export class WebhooksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly lineService: LineService,
+    private readonly mailService: MailService,
   ) {}
 
-  /** API #6: TimeRex予約通知を受け取り、meetingUrlを保存しLINE通知を行う */
+  /** API #6: TimeRex予約通知を受け取り、meetingUrlを保存しメール/LINE通知を行う */
   async receiveTimerex(
     timerexWebhookDto: TimerexWebhookDto,
   ): Promise<TimerexWebhookResponseDto> {
@@ -30,6 +32,11 @@ export class WebhooksService {
         where: { id: teacher.id },
         data: { meetingUrl: timerexWebhookDto.meetingUrl },
       });
+
+      await this.mailService.sendTeacherMeetingUrlNotification(
+        teacher.email,
+        timerexWebhookDto.meetingUrl,
+      );
 
       if (teacher.lineUserId) {
         await this.lineService.pushMessage(

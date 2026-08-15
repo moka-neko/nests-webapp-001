@@ -98,6 +98,22 @@ describe('MailService', () => {
     });
   });
 
+  describe('sendTeacherMeetingUrlNotification', () => {
+    it('面接URL案内メールを送信する', async () => {
+      const sendSpy = jest.spyOn(service, 'sendMail').mockResolvedValue();
+      const meetingUrl = 'https://meet.google.com/abc-defg-hij';
+      await service.sendTeacherMeetingUrlNotification(
+        'yamada@example.com',
+        meetingUrl,
+      );
+      expect(sendSpy).toHaveBeenCalledWith(
+        'yamada@example.com',
+        MAIL_SUBJECTS.teacherMeetingUrl,
+        expect.stringContaining(meetingUrl),
+      );
+    });
+  });
+
   describe('sendTeacherHiredNotification', () => {
     it('採用通知メールを送信する', async () => {
       const sendSpy = jest.spyOn(service, 'sendMail').mockResolvedValue();

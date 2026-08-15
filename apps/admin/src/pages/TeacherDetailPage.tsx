@@ -15,6 +15,9 @@ export function TeacherDetailPage() {
   const [newStatus, setNewStatus] = useState<TeacherStatus | ''>('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [meetingUrlInput, setMeetingUrlInput] = useState('');
+  const [meetingUrlConfirmOpen, setMeetingUrlConfirmOpen] = useState(false);
+  const [meetingUrlError, setMeetingUrlError] = useState('');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['teachers', id],
@@ -32,6 +35,27 @@ export function TeacherDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['teachers'] });
       setConfirmOpen(false);
       setNewStatus('');
+    },
+  });
+
+  const meetingUrlMutation = useMutation({
+    mutationFn: (meetingUrl: string) =>
+      apiFetch<TeacherApplication>(
+        `/api/v1/teachers/applications/${id}/meeting-url`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ meetingUrl }),
+        },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teachers'] });
+      setMeetingUrlConfirmOpen(false);
+      setMeetingUrlInput('');
+      setMeetingUrlError('');
+    },
+    onError: (err: Error) => {
+      setMeetingUrlConfirmOpen(false);
+      setMeetingUrlError(err.message || '面接URLの登録に失敗しました');
     },
   });
 
@@ -56,6 +80,26 @@ export function TeacherDetailPage() {
   const handleStatusChange = () => {
     if (!newStatus || newStatus === data.status) return;
     setConfirmOpen(true);
+  };
+
+  const handleMeetingUrlSubmit = () => {
+    const trimmed = meetingUrlInput.trim();
+    if (!trimmed) {
+      setMeetingUrlError('Google Meet URL を入力してください');
+      return;
+    }
+    try {
+      const url = new URL(trimmed);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        setMeetingUrlError('http または https の URL を入力してください');
+        return;
+      }
+    } catch {
+      setMeetingUrlError('有効な URL を入力してください');
+      return;
+    }
+    setMeetingUrlError('');
+    setMeetingUrlConfirmOpen(true);
   };
 
   return (
@@ -185,11 +229,52 @@ export function TeacherDetailPage() {
                   {data.meetingUrl}
                 </a>
               ) : (
-                '—'
+                '未登録'
               )
             }
           />
         </dl>
+
+        <div className="mb-6 border-t border-slate-100 pt-6">
+          <h3 className="mb-2 text-sm font-medium">Google Meet URL の登録</h3>
+          <p className="mb-3 text-sm text-slate-500">
+            面接用の Google Meet URL を登録すると、応募者へメールおよび LINE（連携済みの場合）で通知します。
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[280px] flex-1">
+              <label htmlFor="meeting-url" className="mb-1 block text-sm font-medium">
+                Google Meet URL
+              </label>
+              <input
+                id="meeting-url"
+                type="url"
+                value={meetingUrlInput}
+                onChange={(e) => {
+                  setMeetingUrlInput(e.target.value);
+                  if (meetingUrlError) setMeetingUrlError('');
+                }}
+                placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleMeetingUrlSubmit}
+              disabled={meetingUrlMutation.isPending}
+              className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {data.meetingUrl ? 'URLを更新して通知' : 'URLを登録して通知'}
+            </button>
+          </div>
+          {meetingUrlError && (
+            <p className="mt-2 text-sm text-red-600">{meetingUrlError}</p>
+          )}
+          {meetingUrlMutation.isSuccess && !meetingUrlConfirmOpen && (
+            <p className="mt-2 text-sm text-green-700">
+              面接URLを登録し、通知を送信しました。
+            </p>
+          )}
+        </div>
 
         <div className="flex flex-wrap items-end gap-3">
           <div>
@@ -227,6 +312,14 @@ export function TeacherDetailPage() {
         loading={statusMutation.isPending}
         onConfirm={() => newStatus && statusMutation.mutate(newStatus)}
         onCancel={() => setConfirmOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={meetingUrlConfirmOpen}
+        message="面接用 Google Meet URL を登録し、応募者へメールおよび LINE で通知します。よろしいですか？"
+        loading={meetingUrlMutation.isPending}
+        onConfirm={() => meetingUrlMutation.mutate(meetingUrlInput.trim())}
+        onCancel={() => setMeetingUrlConfirmOpen(false)}
       />
 
       <ConfirmDialog

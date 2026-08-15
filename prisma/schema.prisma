@@ -19,7 +19,7 @@ model TeacherApplication {
   status          TeacherApplicationStatus @default(PENDING)
   lineDisplayName String? // LINEログイン後に追記
   lineUserId      String? // LINEログイン後に追記
-  meetingUrl      String? // TimeRex Webhook後に追記
+  meetingUrl      String? // 管理画面登録または TimeRex Webhook 後に追記
   submittedAt     DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
   resume          TeacherResume?

@@ -3,13 +3,16 @@ import { Prisma, TeacherApplicationStatus } from '@prisma/client';
 import { LineService } from '../line/line.service';
 import { MailService } from '../mail/mail.service';
 import {
+  buildOperatorMeetingUrlRegisteredMessage,
   buildOperatorTeacherApplicationMessage,
   buildTeacherHiredLineMessage,
+  buildTeacherMeetingUrlLineMessage,
   buildTeacherRejectedLineMessage,
 } from '../notification/notification-templates';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTeacherApplicationDto } from './dto/create-teacher.dto';
 import { UpdateTeacherApplicationDto } from './dto/update-teacher.dto';
+import { UpdateTeacherMeetingUrlDto } from './dto/update-teacher-meeting-url.dto';
 import { UpdateTeacherStatusDto } from './dto/update-teacher-status.dto';
 import { TeacherApplicationResponseDto } from './dto/teacher-application-response.dto';
 import {
@@ -81,6 +84,26 @@ export class TeachersService {
     const response = toResponse(updated);
     await this.notifyStatusChange(response).catch((err: unknown) => {
       this.logger.error('Failed to send status change notifications', err);
+    });
+
+    return response;
+  }
+
+  /** 面接用 Google Meet URL を登録し、メール/LINE通知を行う */
+  async updateMeetingUrl(
+    id: string,
+    dto: UpdateTeacherMeetingUrlDto,
+  ): Promise<TeacherApplicationResponseDto> {
+    await this.findOneOrFail(id);
+    const updated = await this.prisma.teacherApplication.update({
+      where: { id },
+      data: { meetingUrl: dto.meetingUrl },
+      include: { resume: true },
+    });
+
+    const response = toResponse(updated);
+    await this.notifyMeetingUrlRegistered(response).catch((err: unknown) => {
+      this.logger.error('Failed to send meeting URL notifications', err);
     });
 
     return response;
@@ -164,6 +187,33 @@ export class TeachersService {
       default:
         break;
     }
+  }
+
+  private async notifyMeetingUrlRegistered(
+    record: TeacherApplicationResponseDto,
+  ): Promise<void> {
+    if (!record.meetingUrl) {
+      return;
+    }
+
+    await this.mailService.sendTeacherMeetingUrlNotification(
+      record.email,
+      record.meetingUrl,
+    );
+
+    if (record.lineUserId) {
+      await this.lineService.pushMessage(
+        record.lineUserId,
+        buildTeacherMeetingUrlLineMessage(record.nameKanji, record.meetingUrl),
+      );
+    }
+
+    await this.lineService.pushMessageToGroup(
+      buildOperatorMeetingUrlRegisteredMessage(
+        record.nameKanji,
+        record.meetingUrl,
+      ),
+    );
   }
 }
 

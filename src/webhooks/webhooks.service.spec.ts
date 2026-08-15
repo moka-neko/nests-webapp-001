@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LineService } from '../line/line.service';
+import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WebhooksService } from './webhooks.service';
 
@@ -25,6 +26,10 @@ describe('WebhooksService', () => {
     pushMessageToGroup: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mailServiceMock = {
+    sendTeacherMeetingUrlNotification: jest.fn().mockResolvedValue(undefined),
+  };
+
   const webhookDto = {
     reservationId: 'trx-reservation-00123',
     calendarTitle: '先生面接（山田 太郎）',
@@ -43,6 +48,7 @@ describe('WebhooksService', () => {
         WebhooksService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: LineService, useValue: lineServiceMock },
+        { provide: MailService, useValue: mailServiceMock },
       ],
     }).compile();
 
@@ -54,7 +60,7 @@ describe('WebhooksService', () => {
   });
 
   describe('receiveTimerex', () => {
-    it('meetingUrlを保存しLINE通知を送信する', async () => {
+    it('meetingUrlを保存しメールとLINE通知を送信する', async () => {
       prismaMock.teacherApplication.findFirst.mockResolvedValue(mockTeacher);
       prismaMock.teacherApplication.update.mockResolvedValue({
         ...mockTeacher,
@@ -71,6 +77,9 @@ describe('WebhooksService', () => {
         where: { id: 'teacher-uuid-1' },
         data: { meetingUrl: webhookDto.meetingUrl },
       });
+      expect(
+        mailServiceMock.sendTeacherMeetingUrlNotification,
+      ).toHaveBeenCalledWith('yamada@example.com', webhookDto.meetingUrl);
       expect(lineServiceMock.pushMessage).toHaveBeenCalledWith(
         'U123',
         expect.stringContaining('meet.google.com'),
