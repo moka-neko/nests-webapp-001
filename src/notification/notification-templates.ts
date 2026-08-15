@@ -4,6 +4,7 @@ export const MAIL_SUBJECTS = {
   teacherHired: '【採用のお知らせ】',
   teacherRejected: '【選考結果のお知らせ】',
   teacherInterview: '【面接のご案内】',
+  teacherMeetingUrl: '【面接URLのご案内】',
   teacherApplicationConfirmation: '【応募受付完了】',
 } as const;
 
@@ -17,6 +18,13 @@ export function buildTeacherRejectedMailBody(): string {
 
 export function buildTeacherInterviewMailBody(email: string): string {
   return `${email} 様\n\n面接のご案内をお送りします。日程調整用のリンクをご確認ください。`;
+}
+
+export function buildTeacherMeetingUrlMailBody(
+  email: string,
+  meetingUrl: string,
+): string {
+  return `${email} 様\n\n面接の参加用URLをお送りします。\n当日は以下のURLからご参加ください。\n\n${meetingUrl}`;
 }
 
 export function buildTeacherApplicationConfirmationBody(email: string): string {
@@ -56,9 +64,25 @@ export function buildInterviewMeetingLineMessage(
   return `${guestName}さん\n面接の日程調整ありがとうございます。\n当日は以下のURLからご参加ください。\n${meetingUrl}`;
 }
 
+/** 管理画面から面接URLを登録したときの応募者向けLINE通知 */
+export function buildTeacherMeetingUrlLineMessage(
+  guestName: string,
+  meetingUrl: string,
+): string {
+  return `${guestName}さん\n面接の参加用URLをお送りします。\n当日は以下のURLからご参加ください。\n${meetingUrl}`;
+}
+
 export function buildOperatorInterviewScheduledMessage(
   guestName: string,
   meetingUrl: string,
 ): string {
   return `【面接予約完了】\n${guestName}さんとの面接が予約されました。\n参加URL: ${meetingUrl}`;
+}
+
+/** 管理画面から面接URLを登録したときの運営向けLINE通知 */
+export function buildOperatorMeetingUrlRegisteredMessage(
+  guestName: string,
+  meetingUrl: string,
+): string {
+  return `【面接URL登録】\n${guestName}さんへ面接URLを登録・通知しました。\n参加URL: ${meetingUrl}`;
 }

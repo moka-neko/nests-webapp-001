@@ -33,6 +33,7 @@ import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { TeachersService } from './teachers.service';
 import { CreateTeacherApplicationDto } from './dto/create-teacher.dto';
 import { UpdateTeacherApplicationDto } from './dto/update-teacher.dto';
+import { UpdateTeacherMeetingUrlDto } from './dto/update-teacher-meeting-url.dto';
 import { UpdateTeacherStatusDto } from './dto/update-teacher-status.dto';
 import { TeacherApplicationResponseDto } from './dto/teacher-application-response.dto';
 import { UploadTeacherPhotoResponseDto } from './dto/upload-teacher-photo-response.dto';
@@ -213,6 +214,41 @@ export class TeachersController {
     @Body() updateTeacherStatusDto: UpdateTeacherStatusDto,
   ): Promise<TeacherApplicationResponseDto> {
     return this.teachersService.updateStatus(id, updateTeacherStatusDto);
+  }
+
+  /**
+   * PATCH /api/v1/teachers/applications/{id}/meeting-url
+   * 面接用 Google Meet URL を登録し、応募者へメールおよび LINE 通知を行う。
+   */
+  @Patch(':id/meeting-url')
+  @ApiOperation({
+    summary: '面接用 Google Meet URL の登録',
+    description:
+      '面接用 Google Meet URL を登録し、応募者へメールおよび LINE（連携済みの場合）で通知する。運営グループへも LINE 通知する。',
+  })
+  @ApiParam({
+    name: 'id',
+    description: '先生応募ID（UUID）',
+    example: 'a1b2c3d4-...',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '面接URLの登録に成功',
+    type: TeacherApplicationResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'リクエストパラメータが不正',
+  })
+  @ApiResponse({
+    status: 404,
+    description: '指定したIDの応募データが存在しない',
+  })
+  async updateMeetingUrl(
+    @Param('id') id: string,
+    @Body() updateTeacherMeetingUrlDto: UpdateTeacherMeetingUrlDto,
+  ): Promise<TeacherApplicationResponseDto> {
+    return this.teachersService.updateMeetingUrl(id, updateTeacherMeetingUrlDto);
   }
 
   /**

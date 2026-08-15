@@ -45,6 +45,7 @@ describe('TeachersService', () => {
   const mailServiceMock = {
     sendTeacherApplicationConfirmation: jest.fn().mockResolvedValue(undefined),
     sendTeacherInterviewNotification: jest.fn().mockResolvedValue(undefined),
+    sendTeacherMeetingUrlNotification: jest.fn().mockResolvedValue(undefined),
     sendTeacherHiredNotification: jest.fn().mockResolvedValue(undefined),
     sendTeacherRejectedNotification: jest.fn().mockResolvedValue(undefined),
   };
@@ -240,6 +241,57 @@ describe('TeachersService', () => {
         service.updateStatus('missing', {
           status: TeacherApplicationStatus.HIRED,
         }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('updateMeetingUrl', () => {
+    const meetingUrl = 'https://meet.google.com/abc-defg-hij';
+
+    it('meetingUrlを保存しメールと運営LINEを送信する', async () => {
+      prismaMock.teacherApplication.findUnique.mockResolvedValue(mockTeacher);
+      prismaMock.teacherApplication.update.mockResolvedValue({
+        ...mockTeacher,
+        meetingUrl,
+      });
+
+      const result = await service.updateMeetingUrl('teacher-uuid-1', {
+        meetingUrl,
+      });
+
+      expect(result.meetingUrl).toBe(meetingUrl);
+      expect(
+        mailServiceMock.sendTeacherMeetingUrlNotification,
+      ).toHaveBeenCalledWith('yamada@example.com', meetingUrl);
+      expect(lineServiceMock.pushMessage).not.toHaveBeenCalled();
+      expect(lineServiceMock.pushMessageToGroup).toHaveBeenCalledWith(
+        expect.stringContaining('面接URL登録'),
+      );
+    });
+
+    it('LINE連携済みの場合は応募者へもLINE通知する', async () => {
+      const linkedTeacher = {
+        ...mockTeacher,
+        lineUserId: 'U123',
+      };
+      prismaMock.teacherApplication.findUnique.mockResolvedValue(linkedTeacher);
+      prismaMock.teacherApplication.update.mockResolvedValue({
+        ...linkedTeacher,
+        meetingUrl,
+      });
+
+      await service.updateMeetingUrl('teacher-uuid-1', { meetingUrl });
+
+      expect(lineServiceMock.pushMessage).toHaveBeenCalledWith(
+        'U123',
+        expect.stringContaining(meetingUrl),
+      );
+    });
+
+    it('存在しないIDの場合はNotFoundException', async () => {
+      prismaMock.teacherApplication.findUnique.mockResolvedValue(null);
+      await expect(
+        service.updateMeetingUrl('missing', { meetingUrl }),
       ).rejects.toThrow(NotFoundException);
     });
   });

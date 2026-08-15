@@ -6,6 +6,7 @@ import {
   buildTeacherApplicationConfirmationBody,
   buildTeacherHiredMailBody,
   buildTeacherInterviewMailBody,
+  buildTeacherMeetingUrlMailBody,
   buildTeacherRejectedMailBody,
 } from '../notification/notification-templates';
 
@@ -58,6 +59,17 @@ export class MailService {
       email,
       MAIL_SUBJECTS.teacherInterview,
       buildTeacherInterviewMailBody(email),
+    );
+  }
+
+  async sendTeacherMeetingUrlNotification(
+    email: string,
+    meetingUrl: string,
+  ): Promise<void> {
+    await this.sendMail(
+      email,
+      MAIL_SUBJECTS.teacherMeetingUrl,
+      buildTeacherMeetingUrlMailBody(email, meetingUrl),
     );
   }
 
