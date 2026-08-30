@@ -12,6 +12,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { LineCallbackQueryDto } from './dto/line-callback-query.dto';
 import { LineCallbackResponseDto } from './dto/line-callback-response.dto';
+import { LineAddFriendResponseDto } from './dto/line-add-friend-response.dto';
 import { LineLoginQueryDto } from './dto/line-login-query.dto';
 
 /** 完了ページの returnUrl からエラーページ URL へ差し替える */
@@ -42,6 +43,20 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'リクエストパラメータが不正' })
   lineLogin(@Query() query: LineLoginQueryDto): { url: string } {
     return this.authService.getLineLoginUrl(query);
+  }
+
+  @Public()
+  @Get('line/add-friend')
+  @ApiOperation({
+    summary: '公式アカウント友だち追加 URL',
+    description:
+      'Messaging API の Bot 情報または環境変数から友だち追加 URL を返す。',
+  })
+  @ApiResponse({ status: 200, type: LineAddFriendResponseDto })
+  async officialAccountAddFriend(): Promise<LineAddFriendResponseDto> {
+    return {
+      addFriendUrl: await this.authService.getOfficialAccountAddFriendUrl(),
+    };
   }
 
   /**
