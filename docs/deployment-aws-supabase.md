@@ -149,7 +149,9 @@ key is required, add a server-side proxy instead of exposing it as
 5. Optionally set `DEV_NEXT_PUBLIC_LINE_ADD_FRIEND_URL` (公式アカウント友だち追加 URL).
 
 The public Next.js app is configured with `output: "export"` so the deployment
-artifact is `apps/public/out`.
+artifact is `apps/public/out`. The build copies each page HTML to an
+extensionless S3 key (`/apply/teacher.html` → `/apply/teacher`) so CloudFront
+with an S3 REST origin does not return `AccessDenied` on extensionless routes.
 
 ## GitHub repository variables for development
 

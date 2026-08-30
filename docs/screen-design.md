@@ -361,7 +361,7 @@ x-api-key: <APPLICATION_API_KEY>
 | 表示タイミング | LINE コールバック後、フロントエンドへ戻す URL を `returnUrl` で指定した場合 |
 | 表示データ | `LineCallbackResponseDto.message`, `lineDisplayName`, `friendFlag`, `addFriendUrl` |
 | CTA | 公式 LINE 友だち追加ボタン（未追加の場合）。旧 GAS 完了 HTML 相当 |
-| 備考 | 認可時に `bot_prompt=aggressive` で友だち追加画面も出す。完了ページは静的ホスト向けに `/line-link/complete.html` へ戻す |
+| 備考 | 認可時に `bot_prompt=aggressive` で友だち追加画面も出す |
 
 #### PUB-08: LINE 連携エラー
 
