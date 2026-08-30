@@ -5,10 +5,7 @@ export function resolveAddFriendUrl(fromCallback?: string | null): string {
   return fromCallback?.trim() || FALLBACK_ADD_FRIEND_URL;
 }
 
-/** CloudFront / S3 が拡張子なしパスを 403 にするため、本番は静的ファイル名を返す */
+/** LINE callback 後の公開サイト完了 URL */
 export function getLineLinkCompleteReturnUrl(origin: string): string {
-  const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
-  return isLocal
-    ? `${origin}/line-link/complete`
-    : `${origin}/line-link/complete.html`;
+  return `${origin}/line-link/complete`;
 }

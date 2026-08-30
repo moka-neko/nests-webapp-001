@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /out/
+.s3-html-keys
 
 # production
 /build

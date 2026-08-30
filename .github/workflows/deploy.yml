@@ -227,6 +227,16 @@ jobs:
         run: |
           : "${PUBLIC_S3_BUCKET:?Set DEV_PUBLIC_S3_BUCKET repository variable}"
           aws s3 sync apps/public/out "s3://$PUBLIC_S3_BUCKET" --delete
+          if [ -f apps/public/.s3-html-keys ]; then
+            while IFS= read -r mapping; do
+              [ -z "$mapping" ] && continue
+              rel_html="${mapping%% *}"
+              rel_key="${mapping#* }"
+              aws s3 cp "apps/public/out/$rel_html" "s3://$PUBLIC_S3_BUCKET/$rel_key" \
+                --content-type "text/html; charset=utf-8" \
+                --cache-control "public, max-age=0, must-revalidate"
+            done < apps/public/.s3-html-keys
+          fi
           if [ -n "$PUBLIC_CLOUDFRONT_DISTRIBUTION_ID" ]; then
             aws cloudfront create-invalidation \
               --distribution-id "$PUBLIC_CLOUDFRONT_DISTRIBUTION_ID" \
