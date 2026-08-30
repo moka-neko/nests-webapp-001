@@ -38,6 +38,25 @@ describe('LineService', () => {
         'redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fv1%2Fauth%2Fline%2Fcallback',
       );
       expect(url).toContain('state=yamada%40example.com');
+      expect(url).toContain('bot_prompt=aggressive');
+    });
+
+    it('公式アカウント基本IDから友だち追加URLを組み立てる', () => {
+      process.env.LINE_OA_BASIC_ID = 'example_oa';
+      delete process.env.LINE_ADD_FRIEND_URL;
+      expect(service.addFriendUrl).toBe('https://line.me/R/ti/p/@example_oa');
+    });
+
+    it('LINE_ADD_FRIEND_URLが優先される', () => {
+      process.env.LINE_OA_BASIC_ID = 'example_oa';
+      process.env.LINE_ADD_FRIEND_URL = 'https://lin.ee/short';
+      expect(service.addFriendUrl).toBe('https://lin.ee/short');
+    });
+
+    it('未設定なら空文字', () => {
+      delete process.env.LINE_OA_BASIC_ID;
+      delete process.env.LINE_ADD_FRIEND_URL;
+      expect(service.addFriendUrl).toBe('');
     });
 
     it('redirectUriを上書きできる', () => {
@@ -107,6 +126,30 @@ describe('LineService', () => {
         userId: 'U123',
         displayName: '山田 太郎',
       });
+    });
+  });
+
+  describe('getFriendshipStatus', () => {
+    it('friendFlagを返す', async () => {
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: async () => ({ friendFlag: true }),
+      } as Response);
+
+      await expect(service.getFriendshipStatus('token-abc')).resolves.toBe(
+        true,
+      );
+    });
+
+    it('取得失敗時はundefinedを返す', async () => {
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 400,
+      } as Response);
+
+      await expect(
+        service.getFriendshipStatus('token-abc'),
+      ).resolves.toBeUndefined();
     });
   });
 

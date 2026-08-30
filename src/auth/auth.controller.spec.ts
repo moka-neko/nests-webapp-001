@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthController } from './auth.controller';
+import { AuthController, toLineLinkErrorUrl } from './auth.controller';
 import { AuthService } from './auth.service';
 
 describe('AuthController', () => {
@@ -21,5 +21,21 @@ describe('AuthController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('toLineLinkErrorUrl', () => {
+    it('静的エクスポートの complete.html を error.html に差し替える', () => {
+      expect(
+        toLineLinkErrorUrl(
+          'https://example.com/line-link/complete.html',
+        ),
+      ).toBe('https://example.com/line-link/error.html');
+    });
+
+    it('パス末尾の complete を error に差し替える', () => {
+      expect(
+        toLineLinkErrorUrl('https://example.com/line-link/complete'),
+      ).toBe('https://example.com/line-link/error');
+    });
   });
 });

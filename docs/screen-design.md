@@ -351,16 +351,17 @@ x-api-key: <APPLICATION_API_KEY>
 | 項目 | 内容 |
 |------|------|
 | 前提 | 先生応募完了後、応募時のメールアドレスを保持 |
-| 操作 | 「LINE で連携する」ボタン |
+| 操作 | 「LINE で連携する」ボタン。公式 LINE 友だち追加も案内する |
 | 遷移 | ブラウザを `GET /api/v1/auth/line/login?email={email}&userType=teacher` へ遷移（API が LINE 認証画面へ 302 リダイレクト） |
 
 #### PUB-07: LINE 連携完了
 
 | 項目 | 内容 |
 |------|------|
-| 表示タイミング | LINE コールバック後、フロントエンドへ戻す URL を `redirectUri` で指定した場合 |
-| 表示データ | `LineCallbackResponseDto.message`, `lineDisplayName` |
-| 備考 | 現状 API のコールバックは JSON を返す。UX 向上のため、コールバック後に公開サイトの完了ページへリダイレクトするラッパーを検討 |
+| 表示タイミング | LINE コールバック後、フロントエンドへ戻す URL を `returnUrl` で指定した場合 |
+| 表示データ | `LineCallbackResponseDto.message`, `lineDisplayName`, `friendFlag`, `addFriendUrl` |
+| CTA | 公式 LINE 友だち追加ボタン（未追加の場合）。旧 GAS 完了 HTML 相当 |
+| 備考 | 認可時に `bot_prompt=aggressive` で友だち追加画面も出す。完了ページは静的ホスト向けに `/line-link/complete.html` へ戻す |
 
 #### PUB-08: LINE 連携エラー
 

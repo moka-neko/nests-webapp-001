@@ -14,6 +14,13 @@ import { LineCallbackQueryDto } from './dto/line-callback-query.dto';
 import { LineCallbackResponseDto } from './dto/line-callback-response.dto';
 import { LineLoginQueryDto } from './dto/line-login-query.dto';
 
+/** 完了ページの returnUrl からエラーページ URL へ差し替える */
+export function toLineLinkErrorUrl(returnUrl: string): string {
+  return returnUrl
+    .replace(/\/complete\.html$/i, '/error.html')
+    .replace(/\/complete\/?$/i, '/error');
+}
+
 @ApiTags('auth')
 @Controller('api/v1/auth')
 export class AuthController {
@@ -70,6 +77,12 @@ export class AuthController {
         const url = new URL(result.returnUrl);
         url.searchParams.set('message', result.message);
         url.searchParams.set('lineDisplayName', result.lineDisplayName);
+        if (result.friendFlag !== undefined) {
+          url.searchParams.set('friendFlag', String(result.friendFlag));
+        }
+        if (result.addFriendUrl) {
+          url.searchParams.set('addFriendUrl', result.addFriendUrl);
+        }
         res.redirect(url.toString());
         return;
       }
@@ -77,7 +90,7 @@ export class AuthController {
       res.json(result);
     } catch (error) {
       if (returnUrl) {
-        const url = new URL(returnUrl.replace(/\/complete$/, '/error'));
+        const url = new URL(toLineLinkErrorUrl(returnUrl));
         const status =
           error instanceof HttpException ? error.getStatus() : 500;
         url.searchParams.set('status', String(status));

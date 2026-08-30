@@ -41,6 +41,10 @@ export class AuthService {
       redirectUri || undefined,
     );
     const profile = await this.lineService.getUserProfile(token.access_token);
+    const friendFlag = await this.lineService.getFriendshipStatus(
+      token.access_token,
+    );
+    const addFriendUrl = this.lineService.addFriendUrl || undefined;
 
     const teacher = await this.prisma.teacherApplication.findFirst({
       where: { email },
@@ -64,6 +68,8 @@ export class AuthService {
       userId: updated.id,
       lineUserId: profile.userId,
       lineDisplayName: profile.displayName,
+      friendFlag,
+      addFriendUrl,
       returnUrl,
     };
   }

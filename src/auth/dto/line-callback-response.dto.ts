@@ -22,4 +22,19 @@ export class LineCallbackResponseDto {
 
   @ApiProperty({ description: 'LINEの表示名', example: '山田 太郎' })
   lineDisplayName: string;
+
+  @ApiProperty({
+    description:
+      '公式アカウントと友だちかどうか。未リンク・取得失敗時は undefined',
+    example: false,
+    required: false,
+  })
+  friendFlag?: boolean;
+
+  @ApiProperty({
+    description: '公式アカウント友だち追加 URL',
+    example: 'https://line.me/R/ti/p/@example',
+    required: false,
+  })
+  addFriendUrl?: string;
 }

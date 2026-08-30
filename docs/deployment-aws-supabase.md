@@ -117,6 +117,8 @@ LINE_CHANNEL_SECRET=<optional development value>
 LINE_REDIRECT_URI=https://dev-api.example.com/api/v1/auth/line/callback
 LINE_CHANNEL_ACCESS_TOKEN=<optional development value>
 LINE_GROUP_ID=<optional development value>
+LINE_OA_BASIC_ID=<official account basic ID, e.g. @xxxx>
+LINE_ADD_FRIEND_URL=<optional lin.ee URL; overrides LINE_OA_BASIC_ID>
 MAIL_HOST=<optional development value>
 MAIL_PORT=587
 MAIL_SECURE=false
@@ -144,6 +146,7 @@ key is required, add a server-side proxy instead of exposing it as
 2. Put CloudFront in front of the bucket.
 3. Set `NEXT_PUBLIC_API_BASE_URL` through `DEV_API_BASE_URL`.
 4. Optionally set `DEV_NEXT_PUBLIC_PRIVACY_POLICY_URL`.
+5. Optionally set `DEV_NEXT_PUBLIC_LINE_ADD_FRIEND_URL` (公式アカウント友だち追加 URL).
 
 The public Next.js app is configured with `output: "export"` so the deployment
 artifact is `apps/public/out`.
@@ -164,6 +167,7 @@ Set these in GitHub repository settings:
 | `DEV_PUBLIC_S3_BUCKET` | `example-dev-public-site` |
 | `DEV_PUBLIC_CLOUDFRONT_DISTRIBUTION_ID` | `E456...` |
 | `DEV_NEXT_PUBLIC_PRIVACY_POLICY_URL` | `https://dev-public.example.com/privacy` |
+| `DEV_NEXT_PUBLIC_LINE_ADD_FRIEND_URL` | `https://lin.ee/xxxx` |
 
 CloudFront distribution IDs are optional. If unset, invalidation is skipped.
 
