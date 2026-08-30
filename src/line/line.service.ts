@@ -37,6 +37,22 @@ export class LineService {
     return process.env.LINE_REDIRECT_URI ?? '';
   }
 
+  /** 公式アカウント友だち追加 URL（GAS 完了画面の line.me/R/ti/p/@... 相当） */
+  get addFriendUrl(): string {
+    const explicit = process.env.LINE_ADD_FRIEND_URL?.trim();
+    if (explicit) {
+      return explicit;
+    }
+
+    const basicId = process.env.LINE_OA_BASIC_ID?.trim();
+    if (!basicId) {
+      return '';
+    }
+
+    const normalized = basicId.startsWith('@') ? basicId : `@${basicId}`;
+    return `https://line.me/R/ti/p/${normalized}`;
+  }
+
   isOAuthConfigured(): boolean {
     return Boolean(this.channelId && this.channelSecret);
   }
@@ -64,6 +80,8 @@ export class LineService {
       redirect_uri: uri,
       scope: 'openid profile',
       state,
+      // 公式アカウント連携済みなら、認可後に友だち追加画面を出す（旧 GAS 相当）
+      bot_prompt: 'aggressive',
     });
 
     return `https://access.line.me/oauth2/v2.1/authorize?${params.toString()}`;
@@ -137,6 +155,39 @@ export class LineService {
       userId: profile.userId,
       displayName: profile.displayName,
     };
+  }
+
+  /**
+   * LINE Login チャネルに公式アカウントをリンクしている場合、
+   * ユーザーがその公式アカウントと友だちかを返す。
+   * 未リンクや API 失敗時は undefined（コールバックは継続する）。
+   */
+  async getFriendshipStatus(
+    userAccessToken: string,
+  ): Promise<boolean | undefined> {
+    try {
+      const response = await fetch(
+        'https://api.line.me/friendship/v1/status',
+        {
+          headers: { Authorization: `Bearer ${userAccessToken}` },
+        },
+      );
+
+      if (!response.ok) {
+        this.logger.warn(
+          `LINE friendship status failed: ${response.status}`,
+        );
+        return undefined;
+      }
+
+      const body = (await response.json()) as { friendFlag?: boolean };
+      return body.friendFlag;
+    } catch (error) {
+      this.logger.warn(
+        `LINE friendship status error: ${error instanceof Error ? error.message : error}`,
+      );
+      return undefined;
+    }
   }
 
   /** LINE Push メッセージを送信する */

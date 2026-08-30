@@ -27,7 +27,8 @@ export default function TeacherCompletePage() {
       <div className="mb-6 rounded-full bg-green-100 p-4 text-4xl">✓</div>
       <h1 className="mb-4 text-2xl font-bold">応募が完了しました</h1>
       <p className="mb-6 text-slate-600">
-        確認メールをお送りしました。メールをご確認ください。
+        確認メールをお送りしました。メールをご確認ください。選考のご連絡には公式 LINE
+        の友だち追加が必要です。
       </p>
       <dl className="mb-8 rounded-lg border border-slate-200 bg-white p-4 text-left text-sm">
         <div className="mb-2">

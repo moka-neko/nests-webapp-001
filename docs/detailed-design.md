@@ -887,6 +887,8 @@ sequenceDiagram
 | プロフィール API | `https://api.line.me/v2/profile` |
 | スコープ | `openid profile` |
 | grant_type | `authorization_code` |
+| 友だち追加 | 認可 URL に `bot_prompt=aggressive` を付与。Login チャネルに公式アカウントをリンクすること。完了画面でも友だち追加ボタンを表示する（旧 GAS 相当） |
+| 友だち状態 | `GET https://api.line.me/friendship/v1/status`（リンク未設定時はスキップ） |
 
 #### state パラメータ設計
 
@@ -1046,6 +1048,8 @@ stateDiagram-v2
 | `LINE_CHANNEL_ACCESS_TOKEN` | Messaging API アクセストークン | `***` |
 | `LINE_GROUP_ID` | 運営グループの userId / groupId | `Cxxxxxxxxxx` |
 | `LINE_REDIRECT_URI` | OAuth コールバック URL | `https://api.example.com/api/v1/auth/line/callback` |
+| `LINE_OA_BASIC_ID` | 公式アカウントのベーシック ID | `@xxxx` |
+| `LINE_ADD_FRIEND_URL` | 友だち追加の完全 URL（優先） | `https://lin.ee/xxxx` |
 
 ### 8.3 メール関連（本番）
 

@@ -1,4 +1,5 @@
 import type { ApiError } from './types';
+import { getLineLinkCompleteReturnUrl } from './line-add-friend';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
 const API_KEY = process.env.NEXT_PUBLIC_APPLICATION_API_KEY;
@@ -93,7 +94,7 @@ export function getLineLoginUrl(email: string): string {
   const base = API_BASE;
   const returnUrl =
     typeof window !== 'undefined'
-      ? `${window.location.origin}/line-link/complete`
+      ? getLineLinkCompleteReturnUrl(window.location.origin)
       : '';
   const params = new URLSearchParams({
     email,

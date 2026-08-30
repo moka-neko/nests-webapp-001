@@ -3,7 +3,9 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { AddOfficialAccount } from '@/components/AddOfficialAccount';
 import { getLineLoginUrl } from '@/lib/api';
+import { resolveAddFriendUrl } from '@/lib/line-add-friend';
 
 function LineLinkContent() {
   const searchParams = useSearchParams();
@@ -30,9 +32,10 @@ function LineLinkContent() {
     <div className="text-center">
       <h1 className="mb-4 text-2xl font-bold">LINE 連携</h1>
       <p className="mb-2 text-slate-600">
-        選考に関するご連絡を LINE でお届けするため、LINE アカウントとの連携をお願いします。
+        選考に関するご連絡を LINE でお届けするため、LINE アカウントとの連携と公式 LINE の友だち追加をお願いします。
       </p>
-      <p className="mb-8 text-sm text-slate-500">対象メール: {email}</p>
+      <p className="mb-6 text-sm text-slate-500">対象メール: {email}</p>
+      <AddOfficialAccount addFriendUrl={resolveAddFriendUrl()} />
       <button
         type="button"
         onClick={handleLineLink}

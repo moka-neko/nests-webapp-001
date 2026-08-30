@@ -9,9 +9,11 @@ describe('AuthService', () => {
 
   const lineServiceMock = {
     defaultRedirectUri: 'http://localhost:3000/api/v1/auth/line/callback',
+    addFriendUrl: 'https://line.me/R/ti/p/@example',
     buildLoginUrl: jest.fn(),
     exchangeToken: jest.fn(),
     getUserProfile: jest.fn(),
+    getFriendshipStatus: jest.fn(),
     parseOAuthState: jest.fn((state: string) => ({
       email: decodeURIComponent(state),
     })),
@@ -77,6 +79,7 @@ describe('AuthService', () => {
         userId: 'U123',
         displayName: '山田 太郎',
       });
+      lineServiceMock.getFriendshipStatus.mockResolvedValue(false);
       prismaMock.teacherApplication.findFirst.mockResolvedValue(mockTeacher);
       prismaMock.teacherApplication.update.mockResolvedValue({
         ...mockTeacher,
@@ -94,6 +97,8 @@ describe('AuthService', () => {
         userId: 'teacher-uuid-1',
         lineUserId: 'U123',
         lineDisplayName: '山田 太郎',
+        friendFlag: false,
+        addFriendUrl: 'https://line.me/R/ti/p/@example',
       });
       expect(prismaMock.teacherApplication.update).toHaveBeenCalledWith({
         where: { id: 'teacher-uuid-1' },
