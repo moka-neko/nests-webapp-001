@@ -44,7 +44,8 @@ export class AuthService {
     const friendFlag = await this.lineService.getFriendshipStatus(
       token.access_token,
     );
-    const addFriendUrl = this.lineService.addFriendUrl || undefined;
+    const addFriendUrl =
+      (await this.lineService.resolveAddFriendUrl()) || undefined;
 
     const teacher = await this.prisma.teacherApplication.findFirst({
       where: { email },
@@ -76,5 +77,9 @@ export class AuthService {
 
   parseReturnUrlFromState(state: string): string | undefined {
     return this.lineService.parseOAuthState(state).returnUrl;
+  }
+
+  getOfficialAccountAddFriendUrl(): Promise<string> {
+    return this.lineService.resolveAddFriendUrl();
   }
 }

@@ -1,15 +1,48 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { fetchAddFriendUrlFromApi } from '@/lib/line-add-friend';
+
 const ADD_FRIEND_BUTTON_SRC =
   'https://scdn.line-apps.com/n/line_add_friends/btn/ja.png';
 
 type AddOfficialAccountProps = {
-  addFriendUrl: string;
+  addFriendUrl?: string;
   alreadyFriend?: boolean;
 };
 
 export function AddOfficialAccount({
-  addFriendUrl,
+  addFriendUrl = '',
   alreadyFriend = false,
 }: AddOfficialAccountProps) {
+  const [url, setUrl] = useState(addFriendUrl);
+  const [loading, setLoading] = useState(!addFriendUrl && !alreadyFriend);
+
+  useEffect(() => {
+    if (alreadyFriend || addFriendUrl) {
+      setUrl(addFriendUrl);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    fetchAddFriendUrlFromApi()
+      .then((resolved) => {
+        if (!cancelled) {
+          setUrl(resolved);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [addFriendUrl, alreadyFriend]);
+
   if (alreadyFriend) {
     return (
       <p className="mb-8 text-sm text-slate-600">
@@ -23,9 +56,11 @@ export function AddOfficialAccount({
       <p className="mb-4 text-slate-600">
         選考のご連絡を受け取るには、公式 LINE の友だち追加が必要です。
       </p>
-      {addFriendUrl ? (
+      {loading ? (
+        <p className="text-sm text-slate-500">友だち追加リンクを準備しています...</p>
+      ) : url ? (
         <a
-          href={addFriendUrl}
+          href={url}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-block"
@@ -39,7 +74,8 @@ export function AddOfficialAccount({
         </a>
       ) : (
         <p className="text-sm text-slate-500">
-          公式アカウントの友だち追加用 URL が未設定です。運営からの案内に従って追加してください。
+          公式アカウントの友だち追加用 URL
+          を取得できませんでした。時間をおいて再度お試しください。
         </p>
       )}
     </div>

@@ -59,6 +59,21 @@ describe('LineService', () => {
       expect(service.addFriendUrl).toBe('');
     });
 
+    it('MessagingのBot情報から友だち追加URLを組み立てる', async () => {
+      delete process.env.LINE_OA_BASIC_ID;
+      delete process.env.LINE_ADD_FRIEND_URL;
+      process.env.LINE_CHANNEL_ACCESS_TOKEN = 'access-token';
+
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: async () => ({ basicId: '@bot_basic' }),
+      } as Response);
+
+      await expect(service.resolveAddFriendUrl()).resolves.toBe(
+        'https://line.me/R/ti/p/@bot_basic',
+      );
+    });
+
     it('redirectUriを上書きできる', () => {
       process.env.LINE_CHANNEL_ID = 'test-channel-id';
       const url = service.buildLoginUrl(

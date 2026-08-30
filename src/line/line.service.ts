@@ -37,20 +37,67 @@ export class LineService {
     return process.env.LINE_REDIRECT_URI ?? '';
   }
 
-  /** 公式アカウント友だち追加 URL（GAS 完了画面の line.me/R/ti/p/@... 相当） */
+  private cachedAddFriendUrl: string | undefined;
+
+  /** 環境変数だけで組み立てられる友だち追加 URL */
   get addFriendUrl(): string {
     const explicit = process.env.LINE_ADD_FRIEND_URL?.trim();
     if (explicit) {
       return explicit;
     }
 
-    const basicId = process.env.LINE_OA_BASIC_ID?.trim();
-    if (!basicId) {
+    return this.toAddFriendUrl(process.env.LINE_OA_BASIC_ID);
+  }
+
+  private toAddFriendUrl(basicId?: string | null): string {
+    const trimmed = basicId?.trim();
+    if (!trimmed) {
+      return '';
+    }
+    const normalized = trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
+    return `https://line.me/R/ti/p/${normalized}`;
+  }
+
+  /**
+   * 友だち追加 URL。env が空なら Messaging API の Bot 情報から basicId を取る。
+   */
+  async resolveAddFriendUrl(): Promise<string> {
+    const fromEnv = this.addFriendUrl;
+    if (fromEnv) {
+      return fromEnv;
+    }
+    if (this.cachedAddFriendUrl !== undefined) {
+      return this.cachedAddFriendUrl;
+    }
+    this.cachedAddFriendUrl = await this.fetchAddFriendUrlFromBotInfo();
+    return this.cachedAddFriendUrl;
+  }
+
+  private async fetchAddFriendUrlFromBotInfo(): Promise<string> {
+    if (!this.isMessagingConfigured()) {
       return '';
     }
 
-    const normalized = basicId.startsWith('@') ? basicId : `@${basicId}`;
-    return `https://line.me/R/ti/p/${normalized}`;
+    try {
+      const response = await fetch('https://api.line.me/v2/bot/info', {
+        headers: { Authorization: `Bearer ${this.accessToken}` },
+      });
+      if (!response.ok) {
+        this.logger.warn(`LINE bot info failed: ${response.status}`);
+        return '';
+      }
+      const body = (await response.json()) as { basicId?: string };
+      const url = this.toAddFriendUrl(body.basicId);
+      if (!url) {
+        this.logger.warn('LINE bot info did not include basicId');
+      }
+      return url;
+    } catch (error) {
+      this.logger.warn(
+        `LINE bot info error: ${error instanceof Error ? error.message : error}`,
+      );
+      return '';
+    }
   }
 
   isOAuthConfigured(): boolean {

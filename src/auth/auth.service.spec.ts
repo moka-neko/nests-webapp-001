@@ -10,6 +10,7 @@ describe('AuthService', () => {
   const lineServiceMock = {
     defaultRedirectUri: 'http://localhost:3000/api/v1/auth/line/callback',
     addFriendUrl: 'https://line.me/R/ti/p/@example',
+    resolveAddFriendUrl: jest.fn(),
     buildLoginUrl: jest.fn(),
     exchangeToken: jest.fn(),
     getUserProfile: jest.fn(),
@@ -80,6 +81,9 @@ describe('AuthService', () => {
         displayName: '山田 太郎',
       });
       lineServiceMock.getFriendshipStatus.mockResolvedValue(false);
+      lineServiceMock.resolveAddFriendUrl.mockResolvedValue(
+        'https://line.me/R/ti/p/@example',
+      );
       prismaMock.teacherApplication.findFirst.mockResolvedValue(mockTeacher);
       prismaMock.teacherApplication.update.mockResolvedValue({
         ...mockTeacher,
