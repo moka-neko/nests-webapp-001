@@ -52,6 +52,8 @@ describe('TeachersService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    lineServiceMock.pushMessageToGroup.mockResolvedValue(undefined);
+    lineServiceMock.pushMessage.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -88,6 +90,27 @@ describe('TeachersService', () => {
       expect(lineServiceMock.pushMessageToGroup).toHaveBeenCalledWith(
         expect.stringContaining('山田 太郎'),
       );
+      expect(
+        mailServiceMock.sendTeacherApplicationConfirmation,
+      ).toHaveBeenCalledWith('yamada@example.com');
+    });
+
+    it('運営LINEが失敗しても確認メールは送信する', async () => {
+      prismaMock.teacherApplication.create.mockResolvedValue(mockTeacher);
+      lineServiceMock.pushMessageToGroup.mockRejectedValue(
+        new Error('LINE push message failed: 400'),
+      );
+
+      const result = await service.create({
+        email: mockTeacher.email,
+        nameKanji: mockTeacher.nameKanji,
+        nameKatakana: mockTeacher.nameKatakana,
+        age: mockTeacher.age,
+        workLocation: mockTeacher.workLocation,
+        resumeUrl: mockTeacher.resumeUrl,
+      });
+
+      expect(result).toEqual(mockTeacher);
       expect(
         mailServiceMock.sendTeacherApplicationConfirmation,
       ).toHaveBeenCalledWith('yamada@example.com');
@@ -210,6 +233,27 @@ describe('TeachersService', () => {
       expect(lineServiceMock.pushMessage).toHaveBeenCalledWith(
         'U123',
         expect.any(String),
+      );
+    });
+
+    it('採用のLINEが失敗してもメールは送信する', async () => {
+      const hiredTeacher = {
+        ...mockTeacher,
+        status: TeacherApplicationStatus.HIRED,
+        lineUserId: 'U123',
+      };
+      prismaMock.teacherApplication.findUnique.mockResolvedValue(mockTeacher);
+      prismaMock.teacherApplication.update.mockResolvedValue(hiredTeacher);
+      lineServiceMock.pushMessage.mockRejectedValue(
+        new Error('LINE push message failed: 400'),
+      );
+
+      await service.updateStatus('teacher-uuid-1', {
+        status: TeacherApplicationStatus.HIRED,
+      });
+
+      expect(mailServiceMock.sendTeacherHiredNotification).toHaveBeenCalledWith(
+        'yamada@example.com',
       );
     });
 

@@ -155,8 +155,10 @@ export class TeachersService {
       record.email,
       record.resumeUrl,
     );
-    await this.lineService.pushMessageToGroup(groupMessage);
-    await this.mailService.sendTeacherApplicationConfirmation(record.email);
+    await this.runNotifications([
+      this.lineService.pushMessageToGroup(groupMessage),
+      this.mailService.sendTeacherApplicationConfirmation(record.email),
+    ]);
   }
 
   private async notifyStatusChange(
@@ -166,24 +168,36 @@ export class TeachersService {
       case TeacherApplicationStatus.INTERVIEW:
         await this.mailService.sendTeacherInterviewNotification(record.email);
         break;
-      case TeacherApplicationStatus.HIRED:
-        await this.mailService.sendTeacherHiredNotification(record.email);
+      case TeacherApplicationStatus.HIRED: {
+        const tasks: Promise<unknown>[] = [
+          this.mailService.sendTeacherHiredNotification(record.email),
+        ];
         if (record.lineUserId) {
-          await this.lineService.pushMessage(
-            record.lineUserId,
-            buildTeacherHiredLineMessage(),
+          tasks.push(
+            this.lineService.pushMessage(
+              record.lineUserId,
+              buildTeacherHiredLineMessage(),
+            ),
           );
         }
+        await this.runNotifications(tasks);
         break;
-      case TeacherApplicationStatus.REJECTED:
-        await this.mailService.sendTeacherRejectedNotification(record.email);
+      }
+      case TeacherApplicationStatus.REJECTED: {
+        const tasks: Promise<unknown>[] = [
+          this.mailService.sendTeacherRejectedNotification(record.email),
+        ];
         if (record.lineUserId) {
-          await this.lineService.pushMessage(
-            record.lineUserId,
-            buildTeacherRejectedLineMessage(),
+          tasks.push(
+            this.lineService.pushMessage(
+              record.lineUserId,
+              buildTeacherRejectedLineMessage(),
+            ),
           );
         }
+        await this.runNotifications(tasks);
         break;
+      }
       default:
         break;
     }
@@ -196,24 +210,41 @@ export class TeachersService {
       return;
     }
 
-    await this.mailService.sendTeacherMeetingUrlNotification(
-      record.email,
-      record.meetingUrl,
-    );
-
-    if (record.lineUserId) {
-      await this.lineService.pushMessage(
-        record.lineUserId,
-        buildTeacherMeetingUrlLineMessage(record.nameKanji, record.meetingUrl),
-      );
-    }
-
-    await this.lineService.pushMessageToGroup(
-      buildOperatorMeetingUrlRegisteredMessage(
-        record.nameKanji,
+    const tasks: Promise<unknown>[] = [
+      this.mailService.sendTeacherMeetingUrlNotification(
+        record.email,
         record.meetingUrl,
       ),
+      this.lineService.pushMessageToGroup(
+        buildOperatorMeetingUrlRegisteredMessage(
+          record.nameKanji,
+          record.meetingUrl,
+        ),
+      ),
+    ];
+    if (record.lineUserId) {
+      tasks.push(
+        this.lineService.pushMessage(
+          record.lineUserId,
+          buildTeacherMeetingUrlLineMessage(
+            record.nameKanji,
+            record.meetingUrl,
+          ),
+        ),
+      );
+    }
+    await this.runNotifications(tasks);
+  }
+
+  /** LINE 失敗でメール送信が落ちないよう、通知は独立して実行する */
+  private async runNotifications(tasks: Promise<unknown>[]): Promise<void> {
+    const results = await Promise.allSettled(tasks);
+    const firstRejected = results.find(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
     );
+    if (firstRejected) {
+      throw firstRejected.reason;
+    }
   }
 }
 
