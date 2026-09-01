@@ -83,7 +83,7 @@ export class AuthController {
     @Query() query: LineCallbackQueryDto,
     @Res() res: Response,
   ): Promise<void> {
-    const returnUrl = this.authService.parseReturnUrlFromState(query.state);
+    const { email, returnUrl } = this.authService.parseOAuthState(query.state);
 
     try {
       const result = await this.authService.handleLineCallback(query);
@@ -115,6 +115,9 @@ export class AuthController {
             ? String(error.message)
             : '認証に失敗しました。もう一度お試しください',
         );
+        if (email) {
+          url.searchParams.set('email', email);
+        }
         res.redirect(url.toString());
         return;
       }

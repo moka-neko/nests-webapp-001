@@ -75,8 +75,8 @@ export class AuthService {
     };
   }
 
-  parseReturnUrlFromState(state: string): string | undefined {
-    return this.lineService.parseOAuthState(state).returnUrl;
+  parseOAuthState(state: string): { email: string; returnUrl?: string } {
+    return this.lineService.parseOAuthState(state);
   }
 
   getOfficialAccountAddFriendUrl(): Promise<string> {

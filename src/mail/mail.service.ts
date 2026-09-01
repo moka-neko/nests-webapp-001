@@ -6,6 +6,7 @@ import {
   buildTeacherApplicationConfirmationBody,
   buildTeacherHiredMailBody,
   buildTeacherInterviewMailBody,
+  buildTeacherLineLinkUrl,
   buildTeacherMeetingUrlMailBody,
   buildTeacherRejectedMailBody,
 } from '../notification/notification-templates';
@@ -50,7 +51,10 @@ export class MailService {
     await this.sendMail(
       email,
       MAIL_SUBJECTS.teacherApplicationConfirmation,
-      buildTeacherApplicationConfirmationBody(email),
+      buildTeacherApplicationConfirmationBody(
+        email,
+        buildTeacherLineLinkUrl(email),
+      ),
     );
   }
 

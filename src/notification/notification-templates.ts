@@ -27,8 +27,44 @@ export function buildTeacherMeetingUrlMailBody(
   return `${email} 様\n\n面接の参加用URLをお送りします。\n当日は以下のURLからご参加ください。\n\n${meetingUrl}`;
 }
 
-export function buildTeacherApplicationConfirmationBody(email: string): string {
-  return `${email} 様\n\nご応募ありがとうございます。応募を受け付けました。`;
+/** 確認メールに載せる LINE 登録 URL。PUBLIC_SITE_URL 未設定・不正時は undefined */
+export function buildTeacherLineLinkUrl(
+  email: string,
+  publicSiteUrl: string | undefined = process.env.PUBLIC_SITE_URL,
+): string | undefined {
+  const base = publicSiteUrl?.trim();
+  if (!base) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL('/line-link', base.endsWith('/') ? base : `${base}/`);
+    url.searchParams.set('email', email);
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
+export function buildTeacherApplicationConfirmationBody(
+  email: string,
+  lineLinkUrl?: string,
+): string {
+  const lines = [
+    `${email} 様`,
+    '',
+    'ご応募ありがとうございます。応募を受け付けました。',
+  ];
+
+  if (lineLinkUrl) {
+    lines.push(
+      '',
+      '選考のご連絡を LINE で受け取るには、以下のリンクから登録を完了してください。',
+      lineLinkUrl,
+    );
+  }
+
+  return lines.join('\n');
 }
 
 /** LINE 通知テンプレート */

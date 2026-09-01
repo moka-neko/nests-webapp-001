@@ -3,9 +3,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { AddOfficialAccount } from '@/components/AddOfficialAccount';
 import { getLineLoginUrl } from '@/lib/api';
-import { resolveAddFriendUrl } from '@/lib/line-add-friend';
 
 function LineLinkContent() {
   const searchParams = useSearchParams();
@@ -15,7 +13,7 @@ function LineLinkContent() {
     return (
       <div className="text-center">
         <p className="mb-4 text-red-600">
-          メールアドレスが指定されていません。応募完了画面からお進みください。
+          メールアドレスが指定されていません。応募完了画面または確認メールのリンクからお進みください。
         </p>
         <Link href="/" className="text-blue-600">
           トップに戻る
@@ -30,21 +28,21 @@ function LineLinkContent() {
 
   return (
     <div className="text-center">
-      <h1 className="mb-4 text-2xl font-bold">LINE 連携</h1>
+      <h1 className="mb-4 text-2xl font-bold">LINE で選考連絡を受け取る</h1>
       <p className="mb-2 text-slate-600">
-        選考に関するご連絡を LINE でお届けするため、LINE アカウントとの連携と公式 LINE の友だち追加をお願いします。
+        下のボタンから LINE
+        ログインを進めてください。認可の途中で、公式アカウントの友だち追加も案内されます。
       </p>
       <p className="mb-6 text-sm text-slate-500">対象メール: {email}</p>
-      <AddOfficialAccount addFriendUrl={resolveAddFriendUrl()} />
       <button
         type="button"
         onClick={handleLineLink}
         className="w-full rounded-lg bg-green-600 py-3 font-medium text-white hover:bg-green-700"
       >
-        LINE で連携する
+        LINEで続ける
       </button>
       <Link href="/" className="mt-6 block text-sm text-blue-600">
-        後で連携する（トップに戻る）
+        後で登録する（トップに戻る）
       </Link>
     </div>
   );

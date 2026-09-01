@@ -8,18 +8,16 @@ const ADD_FRIEND_BUTTON_SRC =
 
 type AddOfficialAccountProps = {
   addFriendUrl?: string;
-  alreadyFriend?: boolean;
 };
 
 export function AddOfficialAccount({
   addFriendUrl = '',
-  alreadyFriend = false,
 }: AddOfficialAccountProps) {
   const [url, setUrl] = useState(addFriendUrl);
-  const [loading, setLoading] = useState(!addFriendUrl && !alreadyFriend);
+  const [loading, setLoading] = useState(!addFriendUrl);
 
   useEffect(() => {
-    if (alreadyFriend || addFriendUrl) {
+    if (addFriendUrl) {
       setUrl(addFriendUrl);
       setLoading(false);
       return;
@@ -41,15 +39,7 @@ export function AddOfficialAccount({
     return () => {
       cancelled = true;
     };
-  }, [addFriendUrl, alreadyFriend]);
-
-  if (alreadyFriend) {
-    return (
-      <p className="mb-8 text-sm text-slate-600">
-        公式 LINE の友だち追加は完了しています。選考のご連絡をお送りします。
-      </p>
-    );
-  }
+  }, [addFriendUrl]);
 
   return (
     <div className="mb-8">
