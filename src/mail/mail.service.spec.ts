@@ -74,6 +74,7 @@ describe('MailService', () => {
     it('応募確認メールを送信する', async () => {
       process.env.MAIL_HOST = 'smtp.example.com';
       process.env.MAIL_USER = 'noreply@example.com';
+      delete process.env.PUBLIC_SITE_URL;
       const sendSpy = jest.spyOn(service, 'sendMail').mockResolvedValue();
 
       await service.sendTeacherApplicationConfirmation('yamada@example.com');
@@ -82,6 +83,24 @@ describe('MailService', () => {
         'yamada@example.com',
         MAIL_SUBJECTS.teacherApplicationConfirmation,
         expect.stringContaining('yamada@example.com'),
+      );
+      expect(sendSpy.mock.calls[0][2]).not.toContain('/line-link');
+    });
+
+    it('PUBLIC_SITE_URLがある場合はLINE登録リンクを含める', async () => {
+      process.env.MAIL_HOST = 'smtp.example.com';
+      process.env.MAIL_USER = 'noreply@example.com';
+      process.env.PUBLIC_SITE_URL = 'https://apply.example.com';
+      const sendSpy = jest.spyOn(service, 'sendMail').mockResolvedValue();
+
+      await service.sendTeacherApplicationConfirmation('yamada@example.com');
+
+      expect(sendSpy).toHaveBeenCalledWith(
+        'yamada@example.com',
+        MAIL_SUBJECTS.teacherApplicationConfirmation,
+        expect.stringContaining(
+          'https://apply.example.com/line-link?email=yamada%40example.com',
+        ),
       );
     });
   });

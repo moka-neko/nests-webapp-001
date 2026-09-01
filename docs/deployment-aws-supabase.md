@@ -125,6 +125,7 @@ MAIL_SECURE=false
 MAIL_USER=<optional development value>
 MAIL_PASSWORD=<optional development value>
 MAIL_FROM=塾応募管理 Dev <noreply@example.com>
+PUBLIC_SITE_URL=https://dev-public.example.com
 TIMEREX_WEBHOOK_SECRET=<optional development value>
 ```
 

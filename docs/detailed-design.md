@@ -399,7 +399,7 @@ Google フォーム「生徒募集」に対応する（旧 GAS には未実装�
 1. リクエストをバリデーション
 2. `TeacherApplication` レコードを作成（`status = PENDING`）
 3. 運営グループへ LINE 通知を送信（テンプレート変数: `[username]`, `[mail]`, `[history]`）
-4. 応募者へ確認メールを送信
+4. 応募者へ確認メールを送信（`PUBLIC_SITE_URL` 設定時は LINE 登録リンクを含める）
 5. 作成したレコードを返却
 
 #### 旧 GAS との差分
@@ -1060,6 +1060,7 @@ stateDiagram-v2
 | `MAIL_USER` | 送信元アカウント | `noreply@example.com` |
 | `MAIL_PASSWORD` | SMTP パスワード / アプリパスワード | `***` |
 | `MAIL_FROM` | From ヘッダー | `塾応募管理 <noreply@example.com>` |
+| `PUBLIC_SITE_URL` | 公開サイトのオリジン（確認メールの LINE 登録リンク） | `https://www.example.com` |
 
 ### 8.4 開発環境
 

@@ -12,6 +12,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 function ErrorContent() {
   const searchParams = useSearchParams();
   const status = searchParams.get('status') ?? '400';
+  const email = searchParams.get('email') ?? '';
   const message =
     searchParams.get('message') ??
     ERROR_MESSAGES[status] ??
@@ -22,6 +23,14 @@ function ErrorContent() {
       <div className="mb-6 rounded-full bg-red-100 p-4 text-4xl">✕</div>
       <h1 className="mb-4 text-2xl font-bold">LINE 連携エラー</h1>
       <p className="mb-8 text-slate-600">{message}</p>
+      {email ? (
+        <Link
+          href={`/line-link?email=${encodeURIComponent(email)}`}
+          className="mb-4 block w-full rounded-lg bg-green-600 py-3 font-medium text-white hover:bg-green-700"
+        >
+          もう一度試す
+        </Link>
+      ) : null}
       <Link
         href="/"
         className="block w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-700"

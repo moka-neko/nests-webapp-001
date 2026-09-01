@@ -157,9 +157,11 @@ flowchart LR
     TOP --> SF
     TF -->|POST 成功| TC
     SF -->|POST 成功| SC
-    TC --> LINE
+    TC -->|画面の CTA| LINE
+    TC -->|確認メールのリンク| LINE
     LINE -->|API リダイレクト| LC
     LINE -->|失敗| LE
+    LE -->|もう一度試す| LINE
 ```
 
 ### 4.2 管理画面
@@ -311,8 +313,8 @@ x-api-key: <APPLICATION_API_KEY>
 |------|------|
 | API | なし（直前 POST のレスポンスを表示） |
 | 表示データ | `id`, `submittedAt`, `email` |
-| CTA | 「LINE と連携する」→ PUB-06（メールアドレスをクエリで渡す） |
-| 補足文 | 確認メール送信の案内（API 側で送信済み） |
+| CTA | 「LINEで選考連絡を受け取る」→ PUB-06（メールアドレスをクエリで渡す） |
+| 補足文 | 確認メール送信の案内。`PUBLIC_SITE_URL` 設定時はメールにも同じ LINE 登録リンクを掲載 |
 
 ---
 
@@ -350,8 +352,8 @@ x-api-key: <APPLICATION_API_KEY>
 
 | 項目 | 内容 |
 |------|------|
-| 前提 | 先生応募完了後、応募時のメールアドレスを保持 |
-| 操作 | 「LINE で連携する」ボタン。公式 LINE 友だち追加も案内する |
+| 前提 | 先生応募完了後、または確認メールのリンク。応募時のメールアドレスをクエリで保持 |
+| 操作 | 「LINEで続ける」ボタンのみ。友だち追加ボタンは出さない（認可中の `bot_prompt=aggressive` に任せる） |
 | 遷移 | ブラウザを `GET /api/v1/auth/line/login?email={email}&userType=teacher` へ遷移（API が LINE 認証画面へ 302 リダイレクト） |
 
 #### PUB-07: LINE 連携完了
@@ -360,8 +362,8 @@ x-api-key: <APPLICATION_API_KEY>
 |------|------|
 | 表示タイミング | LINE コールバック後、フロントエンドへ戻す URL を `returnUrl` で指定した場合 |
 | 表示データ | `LineCallbackResponseDto.message`, `lineDisplayName`, `friendFlag`, `addFriendUrl` |
-| CTA | 公式 LINE 友だち追加ボタン（未追加の場合）。旧 GAS 完了 HTML 相当 |
-| 備考 | 認可時に `bot_prompt=aggressive` で友だち追加画面も出す |
+| CTA | 友だち未追加（`friendFlag` が true でない）場合のみ公式 LINE 友だち追加ボタン。追加済みなら完了メッセージのみ |
+| 備考 | 認可時に `bot_prompt=aggressive` で友だち追加画面も出す。完了画面の友だち追加は未追加時のフォールバック |
 
 #### PUB-08: LINE 連携エラー
 
@@ -369,6 +371,8 @@ x-api-key: <APPLICATION_API_KEY>
 |------|----------------|
 | 400 | 認証に失敗しました。もう一度お試しください |
 | 404 | 応募情報が見つかりません。応募時のメールアドレスをご確認ください |
+
+`email` クエリがある場合は「もう一度試す」で PUB-06 へ戻る。なければトップへ。
 
 ---
 

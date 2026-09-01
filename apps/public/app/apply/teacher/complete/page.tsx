@@ -27,8 +27,8 @@ export default function TeacherCompletePage() {
       <div className="mb-6 rounded-full bg-green-100 p-4 text-4xl">✓</div>
       <h1 className="mb-4 text-2xl font-bold">応募が完了しました</h1>
       <p className="mb-6 text-slate-600">
-        確認メールをお送りしました。メールをご確認ください。選考のご連絡には公式 LINE
-        の友だち追加が必要です。
+        確認メールをお送りしました。選考のご連絡を LINE
+        で受け取るには、下のボタンから登録を完了してください。この画面を閉じたあとも、メールのリンクから再開できます。
       </p>
       <dl className="mb-8 rounded-lg border border-slate-200 bg-white p-4 text-left text-sm">
         <div className="mb-2">
@@ -48,7 +48,7 @@ export default function TeacherCompletePage() {
         href={`/line-link?email=${encodeURIComponent(data.email)}`}
         className="mb-4 block w-full rounded-lg bg-green-600 py-3 font-medium text-white hover:bg-green-700"
       >
-        LINE と連携する
+        LINEで選考連絡を受け取る
       </Link>
       <Link href="/" className="text-sm text-blue-600">
         トップに戻る

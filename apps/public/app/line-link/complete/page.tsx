@@ -23,10 +23,13 @@ function CompleteContent() {
           LINE 表示名: {lineDisplayName}
         </p>
       )}
-      <AddOfficialAccount
-        addFriendUrl={addFriendUrl}
-        alreadyFriend={friendFlag}
-      />
+      {friendFlag ? (
+        <p className="mb-8 text-sm text-slate-600">
+          公式 LINE の友だち追加も完了しています。選考のご連絡をお送りします。
+        </p>
+      ) : (
+        <AddOfficialAccount addFriendUrl={addFriendUrl} />
+      )}
       <Link
         href="/"
         className="block w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-700"
