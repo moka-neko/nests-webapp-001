@@ -257,7 +257,10 @@ export class LineService {
     });
 
     if (!response.ok) {
-      this.logger.error(`LINE push failed: ${response.status}`);
+      const detail = await response.text().catch(() => '');
+      this.logger.error(
+        `LINE push failed: ${response.status} to=${to} ${detail}`.trim(),
+      );
       throw new Error(`LINE push message failed: ${response.status}`);
     }
   }
