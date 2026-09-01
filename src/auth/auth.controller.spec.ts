@@ -30,22 +30,21 @@ describe('AuthController', () => {
   describe('toLineLinkErrorUrl', () => {
     it('静的エクスポートの complete.html を error.html に差し替える', () => {
       expect(
-        toLineLinkErrorUrl(
-          'https://example.com/line-link/complete.html',
-        ),
+        toLineLinkErrorUrl('https://example.com/line-link/complete.html'),
       ).toBe('https://example.com/line-link/error.html');
     });
 
     it('パス末尾の complete を error に差し替える', () => {
-      expect(
-        toLineLinkErrorUrl('https://example.com/line-link/complete'),
-      ).toBe('https://example.com/line-link/error');
+      expect(toLineLinkErrorUrl('https://example.com/line-link/complete')).toBe(
+        'https://example.com/line-link/error',
+      );
     });
   });
 
   describe('lineCallback', () => {
+    const redirect = jest.fn();
     const res = {
-      redirect: jest.fn(),
+      redirect,
       json: jest.fn(),
     } as unknown as Response;
 
@@ -58,14 +57,13 @@ describe('AuthController', () => {
         new NotFoundException('対象ユーザーが存在しない'),
       );
 
-      await controller.lineCallback(
-        { code: 'auth-code', state: 'state' },
-        res,
-      );
+      await controller.lineCallback({ code: 'auth-code', state: 'state' }, res);
 
-      expect(res.redirect).toHaveBeenCalled();
-      const redirected = (res.redirect as jest.Mock).mock.calls[0][0] as string;
-      const url = new URL(redirected);
+      expect(redirect).toHaveBeenCalledTimes(1);
+      const calls = redirect.mock.calls as unknown as unknown[][];
+      const redirected = calls[0]?.[0];
+      expect(typeof redirected).toBe('string');
+      const url = new URL(String(redirected));
       expect(url.pathname).toBe('/line-link/error');
       expect(url.searchParams.get('email')).toBe('yamada@example.com');
       expect(url.searchParams.get('status')).toBe('404');

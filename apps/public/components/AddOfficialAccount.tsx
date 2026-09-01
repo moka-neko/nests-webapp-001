@@ -24,7 +24,7 @@ export function AddOfficialAccount({
     }
 
     let cancelled = false;
-    fetchAddFriendUrlFromApi()
+    void fetchAddFriendUrlFromApi()
       .then((resolved) => {
         if (!cancelled) {
           setUrl(resolved);
@@ -47,7 +47,9 @@ export function AddOfficialAccount({
         選考のご連絡を受け取るには、公式 LINE の友だち追加が必要です。
       </p>
       {loading ? (
-        <p className="text-sm text-slate-500">友だち追加リンクを準備しています...</p>
+        <p className="text-sm text-slate-500">
+          友だち追加リンクを準備しています...
+        </p>
       ) : url ? (
         <a
           href={url}

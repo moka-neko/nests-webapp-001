@@ -6,10 +6,11 @@ import {
 describe('buildTeacherLineLinkUrl', () => {
   it('公開サイトURLとメールから連携案内URLを組み立てる', () => {
     expect(
-      buildTeacherLineLinkUrl('yamada@example.com', 'https://apply.example.com'),
-    ).toBe(
-      'https://apply.example.com/line-link?email=yamada%40example.com',
-    );
+      buildTeacherLineLinkUrl(
+        'yamada@example.com',
+        'https://apply.example.com',
+      ),
+    ).toBe('https://apply.example.com/line-link?email=yamada%40example.com');
   });
 
   it('末尾スラッシュを許容する', () => {
@@ -18,13 +19,13 @@ describe('buildTeacherLineLinkUrl', () => {
         'yamada@example.com',
         'https://apply.example.com/',
       ),
-    ).toBe(
-      'https://apply.example.com/line-link?email=yamada%40example.com',
-    );
+    ).toBe('https://apply.example.com/line-link?email=yamada%40example.com');
   });
 
   it('未設定時はundefined', () => {
-    expect(buildTeacherLineLinkUrl('yamada@example.com', undefined)).toBeUndefined();
+    expect(
+      buildTeacherLineLinkUrl('yamada@example.com', undefined),
+    ).toBeUndefined();
     expect(buildTeacherLineLinkUrl('yamada@example.com', '')).toBeUndefined();
     expect(buildTeacherLineLinkUrl('yamada@example.com', '  ')).toBeUndefined();
   });

@@ -106,8 +106,7 @@ export class AuthController {
     } catch (error) {
       if (returnUrl) {
         const url = new URL(toLineLinkErrorUrl(returnUrl));
-        const status =
-          error instanceof HttpException ? error.getStatus() : 500;
+        const status = error instanceof HttpException ? error.getStatus() : 500;
         url.searchParams.set('status', String(status));
         url.searchParams.set(
           'message',

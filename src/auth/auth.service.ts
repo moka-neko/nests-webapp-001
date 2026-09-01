@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { LineService } from '../line/line.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LineCallbackQueryDto } from './dto/line-callback-query.dto';
@@ -20,7 +16,8 @@ export class AuthService {
 
   /** API #4: LINEログイン認証URLを生成して返す */
   getLineLoginUrl(query: LineLoginQueryDto): { url: string } {
-    const redirectUri = query.redirectUri ?? this.lineService.defaultRedirectUri;
+    const redirectUri =
+      query.redirectUri ?? this.lineService.defaultRedirectUri;
     const url = this.lineService.buildLoginUrl(
       query.email,
       redirectUri,
