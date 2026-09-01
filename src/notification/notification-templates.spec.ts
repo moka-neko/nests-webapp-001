@@ -22,6 +22,18 @@ describe('buildTeacherLineLinkUrl', () => {
     ).toBe('https://apply.example.com/line-link?email=yamada%40example.com');
   });
 
+  it('応募IDがある場合はクエリに含める', () => {
+    expect(
+      buildTeacherLineLinkUrl(
+        'yamada@example.com',
+        'https://apply.example.com',
+        'teacher-uuid-1',
+      ),
+    ).toBe(
+      'https://apply.example.com/line-link?email=yamada%40example.com&applicationId=teacher-uuid-1',
+    );
+  });
+
   it('未設定時はundefined', () => {
     expect(
       buildTeacherLineLinkUrl('yamada@example.com', undefined),

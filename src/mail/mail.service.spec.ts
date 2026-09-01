@@ -93,13 +93,16 @@ describe('MailService', () => {
       process.env.PUBLIC_SITE_URL = 'https://apply.example.com';
       const sendSpy = jest.spyOn(service, 'sendMail').mockResolvedValue();
 
-      await service.sendTeacherApplicationConfirmation('yamada@example.com');
+      await service.sendTeacherApplicationConfirmation(
+        'yamada@example.com',
+        'teacher-uuid-1',
+      );
 
       expect(sendSpy).toHaveBeenCalledWith(
         'yamada@example.com',
         MAIL_SUBJECTS.teacherApplicationConfirmation,
         expect.stringContaining(
-          'https://apply.example.com/line-link?email=yamada%40example.com',
+          'https://apply.example.com/line-link?email=yamada%40example.com&applicationId=teacher-uuid-1',
         ),
       );
     });

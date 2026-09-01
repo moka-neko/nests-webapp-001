@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 /** LINEログイン開始リクエストのクエリパラメータ（API #4: GET /api/v1/auth/line/login） */
 export class LineLoginQueryDto {
@@ -36,4 +43,12 @@ export class LineLoginQueryDto {
     example: 'http://localhost:3001/line-link/complete',
   })
   returnUrl?: string;
+
+  @IsOptional()
+  @IsUUID()
+  @ApiPropertyOptional({
+    description: '紐づけ対象の先生応募 ID（指定時は当該レコードを更新）',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  applicationId?: string;
 }

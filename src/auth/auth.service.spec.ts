@@ -60,6 +60,7 @@ describe('AuthService', () => {
         'yamada@example.com',
         'http://localhost:3000/api/v1/auth/line/callback',
         undefined,
+        undefined,
       );
     });
   });
@@ -104,6 +105,10 @@ describe('AuthService', () => {
         friendFlag: false,
         addFriendUrl: 'https://line.me/R/ti/p/@example',
       });
+      expect(prismaMock.teacherApplication.findFirst).toHaveBeenCalledWith({
+        where: { email: 'yamada@example.com' },
+        orderBy: { submittedAt: 'desc' },
+      });
       expect(prismaMock.teacherApplication.update).toHaveBeenCalledWith({
         where: { id: 'teacher-uuid-1' },
         data: {
@@ -129,6 +134,39 @@ describe('AuthService', () => {
           state: encodeURIComponent('unknown@example.com'),
         }),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('applicationIdがある場合はその応募レコードを更新する', async () => {
+      lineServiceMock.parseOAuthState.mockReturnValueOnce({
+        email: 'yamada@example.com',
+        applicationId: 'teacher-uuid-1',
+      });
+      lineServiceMock.exchangeToken.mockResolvedValue({
+        access_token: 'token-abc',
+      });
+      lineServiceMock.getUserProfile.mockResolvedValue({
+        userId: 'U123',
+        displayName: '山田 太郎',
+      });
+      lineServiceMock.getFriendshipStatus.mockResolvedValue(true);
+      lineServiceMock.resolveAddFriendUrl.mockResolvedValue(
+        'https://line.me/R/ti/p/@example',
+      );
+      prismaMock.teacherApplication.findFirst.mockResolvedValue(mockTeacher);
+      prismaMock.teacherApplication.update.mockResolvedValue({
+        ...mockTeacher,
+        lineUserId: 'U123',
+        lineDisplayName: '山田 太郎',
+      });
+
+      await service.handleLineCallback({
+        code: 'auth-code',
+        state: 'state-with-id',
+      });
+
+      expect(prismaMock.teacherApplication.findFirst).toHaveBeenCalledWith({
+        where: { id: 'teacher-uuid-1', email: 'yamada@example.com' },
+      });
     });
   });
 });

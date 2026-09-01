@@ -4,6 +4,8 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
+import { getLineLinkHref } from '@/lib/line-add-friend';
+
 const ERROR_MESSAGES: Record<string, string> = {
   '400': '認証に失敗しました。もう一度お試しください',
   '404': '応募情報が見つかりません。応募時のメールアドレスをご確認ください',
@@ -13,6 +15,7 @@ function ErrorContent() {
   const searchParams = useSearchParams();
   const status = searchParams.get('status') ?? '400';
   const email = searchParams.get('email') ?? '';
+  const applicationId = searchParams.get('applicationId') ?? '';
   const message =
     searchParams.get('message') ??
     ERROR_MESSAGES[status] ??
@@ -25,7 +28,7 @@ function ErrorContent() {
       <p className="mb-8 text-slate-600">{message}</p>
       {email ? (
         <Link
-          href={`/line-link?email=${encodeURIComponent(email)}`}
+          href={getLineLinkHref(email, applicationId || undefined)}
           className="mb-4 block w-full rounded-lg bg-green-600 py-3 font-medium text-white hover:bg-green-700"
         >
           もう一度試す

@@ -157,7 +157,10 @@ export class TeachersService {
     );
     await this.runNotifications([
       this.lineService.pushMessageToGroup(groupMessage),
-      this.mailService.sendTeacherApplicationConfirmation(record.email),
+      this.mailService.sendTeacherApplicationConfirmation(
+        record.email,
+        record.id,
+      ),
     ]);
   }
 

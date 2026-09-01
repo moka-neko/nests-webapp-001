@@ -84,6 +84,22 @@ describe('LineService', () => {
         'redirect_uri=https%3A%2F%2Fcustom.example.com%2Fcallback',
       );
     });
+
+    it('applicationIdをstateに含める', () => {
+      process.env.LINE_CHANNEL_ID = 'test-channel-id';
+      const url = service.buildLoginUrl(
+        'yamada@example.com',
+        undefined,
+        'http://localhost:3001/line-link/complete',
+        'teacher-uuid-1',
+      );
+      const state = new URL(url).searchParams.get('state') ?? '';
+      expect(service.parseOAuthState(state)).toEqual({
+        email: 'yamada@example.com',
+        returnUrl: 'http://localhost:3001/line-link/complete',
+        applicationId: 'teacher-uuid-1',
+      });
+    });
   });
 
   describe('exchangeToken', () => {

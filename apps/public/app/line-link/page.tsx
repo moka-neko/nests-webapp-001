@@ -8,6 +8,7 @@ import { getLineLoginUrl } from '@/lib/api';
 function LineLinkContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') ?? '';
+  const applicationId = searchParams.get('applicationId') ?? '';
 
   if (!email) {
     return (
@@ -23,7 +24,7 @@ function LineLinkContent() {
   }
 
   const handleLineLink = () => {
-    window.location.href = getLineLoginUrl(email);
+    window.location.href = getLineLoginUrl(email, applicationId || undefined);
   };
 
   return (

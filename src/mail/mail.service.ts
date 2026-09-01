@@ -47,13 +47,20 @@ export class MailService {
     await this.getTransporter().sendMail({ from, to, subject, text });
   }
 
-  async sendTeacherApplicationConfirmation(email: string): Promise<void> {
+  async sendTeacherApplicationConfirmation(
+    email: string,
+    applicationId?: string,
+  ): Promise<void> {
     await this.sendMail(
       email,
       MAIL_SUBJECTS.teacherApplicationConfirmation,
       buildTeacherApplicationConfirmationBody(
         email,
-        buildTeacherLineLinkUrl(email),
+        buildTeacherLineLinkUrl(
+          email,
+          process.env.PUBLIC_SITE_URL,
+          applicationId,
+        ),
       ),
     );
   }

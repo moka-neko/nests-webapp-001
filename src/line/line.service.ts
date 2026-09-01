@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 export interface LineTokenResponse {
   access_token: string;
@@ -113,13 +109,27 @@ export class LineService {
     email: string,
     redirectUri?: string,
     returnUrl?: string,
+    applicationId?: string,
   ): string {
     const uri = redirectUri ?? this.defaultRedirectUri;
     const clientId = this.channelId || 'DUMMY';
 
-    const state = returnUrl
-      ? Buffer.from(JSON.stringify({ email, returnUrl })).toString('base64url')
-      : email;
+    const statePayload: {
+      email: string;
+      returnUrl?: string;
+      applicationId?: string;
+    } = { email };
+    if (returnUrl) {
+      statePayload.returnUrl = returnUrl;
+    }
+    if (applicationId) {
+      statePayload.applicationId = applicationId;
+    }
+
+    const state =
+      returnUrl || applicationId
+        ? Buffer.from(JSON.stringify(statePayload)).toString('base64url')
+        : email;
 
     const params = new URLSearchParams({
       response_type: 'code',
@@ -135,14 +145,26 @@ export class LineService {
   }
 
   /** state パラメータからメールアドレスと returnUrl を復元する */
-  parseOAuthState(state: string): { email: string; returnUrl?: string } {
+  parseOAuthState(state: string): {
+    email: string;
+    returnUrl?: string;
+    applicationId?: string;
+  } {
     const decoded = decodeURIComponent(state);
     try {
       const parsed = JSON.parse(
         Buffer.from(decoded, 'base64url').toString('utf8'),
-      ) as { email?: string; returnUrl?: string };
+      ) as {
+        email?: string;
+        returnUrl?: string;
+        applicationId?: string;
+      };
       if (parsed.email) {
-        return { email: parsed.email, returnUrl: parsed.returnUrl };
+        return {
+          email: parsed.email,
+          returnUrl: parsed.returnUrl,
+          applicationId: parsed.applicationId,
+        };
       }
     } catch {
       // legacy: state is plain email
@@ -213,17 +235,12 @@ export class LineService {
     userAccessToken: string,
   ): Promise<boolean | undefined> {
     try {
-      const response = await fetch(
-        'https://api.line.me/friendship/v1/status',
-        {
-          headers: { Authorization: `Bearer ${userAccessToken}` },
-        },
-      );
+      const response = await fetch('https://api.line.me/friendship/v1/status', {
+        headers: { Authorization: `Bearer ${userAccessToken}` },
+      });
 
       if (!response.ok) {
-        this.logger.warn(
-          `LINE friendship status failed: ${response.status}`,
-        );
+        this.logger.warn(`LINE friendship status failed: ${response.status}`);
         return undefined;
       }
 
