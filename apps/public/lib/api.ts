@@ -1,7 +1,8 @@
 import type { ApiError } from './types';
 import { getLineLinkCompleteReturnUrl } from './line-add-friend';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
 const API_KEY = process.env.NEXT_PUBLIC_APPLICATION_API_KEY;
 
 export class ApiRequestError extends Error {
@@ -14,7 +15,9 @@ export class ApiRequestError extends Error {
   }
 }
 
-function parseFieldErrors(message: string | string[]): Record<string, string> | undefined {
+function parseFieldErrors(
+  message: string | string[],
+): Record<string, string> | undefined {
   if (!Array.isArray(message)) return undefined;
   const errors: Record<string, string> = {};
   for (const item of message) {
@@ -90,7 +93,7 @@ export async function uploadTeacherPhoto(file: File): Promise<string> {
   return result.photoUrl;
 }
 
-export function getLineLoginUrl(email: string): string {
+export function getLineLoginUrl(email: string, applicationId?: string): string {
   const base = API_BASE;
   const returnUrl =
     typeof window !== 'undefined'
@@ -101,5 +104,8 @@ export function getLineLoginUrl(email: string): string {
     userType: 'teacher',
     returnUrl,
   });
+  if (applicationId) {
+    params.set('applicationId', applicationId);
+  }
   return `${base}/api/v1/auth/line/login?${params.toString()}`;
 }

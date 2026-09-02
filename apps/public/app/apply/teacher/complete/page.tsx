@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { getLineLinkHref } from '@/lib/line-add-friend';
 import { formatDateTime } from '@/lib/format';
 import { getTeacherResult } from '@/lib/teacher-storage';
 import type { TeacherApplication } from '@/lib/types';
@@ -45,7 +46,7 @@ export default function TeacherCompletePage() {
         </div>
       </dl>
       <Link
-        href={`/line-link?email=${encodeURIComponent(data.email)}`}
+        href={getLineLinkHref(data.email, data.id)}
         className="mb-4 block w-full rounded-lg bg-green-600 py-3 font-medium text-white hover:bg-green-700"
       >
         LINEで選考連絡を受け取る

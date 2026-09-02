@@ -22,6 +22,7 @@ export class AuthService {
       query.email,
       redirectUri,
       query.returnUrl,
+      query.applicationId,
     );
     return { url };
   }
@@ -30,7 +31,8 @@ export class AuthService {
   async handleLineCallback(
     query: LineCallbackQueryDto,
   ): Promise<LineCallbackResult> {
-    const { email, returnUrl } = this.lineService.parseOAuthState(query.state);
+    const { email, returnUrl, applicationId } =
+      this.lineService.parseOAuthState(query.state);
     const redirectUri = this.lineService.defaultRedirectUri;
 
     const token = await this.lineService.exchangeToken(
@@ -44,9 +46,14 @@ export class AuthService {
     const addFriendUrl =
       (await this.lineService.resolveAddFriendUrl()) || undefined;
 
-    const teacher = await this.prisma.teacherApplication.findFirst({
-      where: { email },
-    });
+    const teacher = applicationId
+      ? await this.prisma.teacherApplication.findFirst({
+          where: { id: applicationId, email },
+        })
+      : await this.prisma.teacherApplication.findFirst({
+          where: { email },
+          orderBy: { submittedAt: 'desc' },
+        });
 
     if (!teacher) {
       this.logger.warn(`LINE callback: teacher not found for email=${email}`);
@@ -72,7 +79,11 @@ export class AuthService {
     };
   }
 
-  parseOAuthState(state: string): { email: string; returnUrl?: string } {
+  parseOAuthState(state: string): {
+    email: string;
+    returnUrl?: string;
+    applicationId?: string;
+  } {
     return this.lineService.parseOAuthState(state);
   }
 

@@ -31,6 +31,7 @@ export function buildTeacherMeetingUrlMailBody(
 export function buildTeacherLineLinkUrl(
   email: string,
   publicSiteUrl: string | undefined = process.env.PUBLIC_SITE_URL,
+  applicationId?: string,
 ): string | undefined {
   const base = publicSiteUrl?.trim();
   if (!base) {
@@ -40,6 +41,9 @@ export function buildTeacherLineLinkUrl(
   try {
     const url = new URL('/line-link', base.endsWith('/') ? base : `${base}/`);
     url.searchParams.set('email', email);
+    if (applicationId) {
+      url.searchParams.set('applicationId', applicationId);
+    }
     return url.toString();
   } catch {
     return undefined;

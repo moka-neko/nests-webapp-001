@@ -83,7 +83,8 @@ export class AuthController {
     @Query() query: LineCallbackQueryDto,
     @Res() res: Response,
   ): Promise<void> {
-    const { email, returnUrl } = this.authService.parseOAuthState(query.state);
+    const { email, returnUrl, applicationId } =
+      this.authService.parseOAuthState(query.state);
 
     try {
       const result = await this.authService.handleLineCallback(query);
@@ -116,6 +117,9 @@ export class AuthController {
         );
         if (email) {
           url.searchParams.set('email', email);
+        }
+        if (applicationId) {
+          url.searchParams.set('applicationId', applicationId);
         }
         res.redirect(url.toString());
         return;

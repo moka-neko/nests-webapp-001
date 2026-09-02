@@ -5,6 +5,14 @@ export function resolveAddFriendUrl(fromCallback?: string | null): string {
   return fromCallback?.trim() || FALLBACK_ADD_FRIEND_URL;
 }
 
+export function getLineLinkHref(email: string, applicationId?: string): string {
+  const params = new URLSearchParams({ email });
+  if (applicationId) {
+    params.set('applicationId', applicationId);
+  }
+  return `/line-link?${params.toString()}`;
+}
+
 /** LINE callback 後の公開サイト完了 URL */
 export function getLineLinkCompleteReturnUrl(origin: string): string {
   return `${origin}/line-link/complete`;

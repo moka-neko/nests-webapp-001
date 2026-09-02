@@ -92,7 +92,7 @@ describe('TeachersService', () => {
       );
       expect(
         mailServiceMock.sendTeacherApplicationConfirmation,
-      ).toHaveBeenCalledWith('yamada@example.com');
+      ).toHaveBeenCalledWith('yamada@example.com', 'teacher-uuid-1');
     });
 
     it('運営LINEが失敗しても確認メールは送信する', async () => {
@@ -113,7 +113,7 @@ describe('TeachersService', () => {
       expect(result).toEqual(mockTeacher);
       expect(
         mailServiceMock.sendTeacherApplicationConfirmation,
-      ).toHaveBeenCalledWith('yamada@example.com');
+      ).toHaveBeenCalledWith('yamada@example.com', 'teacher-uuid-1');
     });
 
     it('履歴書付きの応募を作成できる', async () => {
