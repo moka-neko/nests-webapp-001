@@ -31,6 +31,9 @@ export default function StudentCompletePage() {
     <div className="mx-auto max-w-lg px-4 py-8 text-center">
       <div className="mb-6 rounded-full bg-green-100 p-4 text-4xl">✓</div>
       <h1 className="mb-4 text-2xl font-bold">応募が完了しました</h1>
+      <p className="mb-6 text-slate-600">
+        確認メールをお送りしました。ご登録のメールアドレスをご確認ください。
+      </p>
       <dl className="mb-8 rounded-lg border border-slate-200 bg-white p-4 text-left text-sm">
         <div className="mb-2">
           <dt className="text-slate-500">応募 ID</dt>
@@ -40,9 +43,13 @@ export default function StudentCompletePage() {
           <dt className="text-slate-500">応募日時</dt>
           <dd className="font-medium">{formatDateTime(data.submittedAt)}</dd>
         </div>
-        <div>
+        <div className="mb-2">
           <dt className="text-slate-500">氏名</dt>
           <dd className="font-medium">{data.name}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">メールアドレス</dt>
+          <dd className="font-medium">{data.email}</dd>
         </div>
       </dl>
       <Link

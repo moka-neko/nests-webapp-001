@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { LineService } from '../line/line.service';
+import { MailService } from '../mail/mail.service';
 import { buildOperatorStudentApplicationMessage } from '../notification/notification-templates';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStudentApplicationDto } from './dto/create-student.dto';
@@ -13,16 +14,20 @@ export class StudentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly lineService: LineService,
+    private readonly mailService: MailService,
   ) {}
 
-  /** API #3: 生徒の新規応募を受け付け、DBへ保存し運営へ通知する */
+  /** API #3: 生徒の新規応募を受け付け、DBへ保存し通知を行う */
   async create(
     dto: CreateStudentApplicationDto,
   ): Promise<StudentApplicationResponseDto> {
     const record = await this.prisma.studentApplication.create({ data: dto });
 
     await this.notifyNewApplication(record).catch((err: unknown) => {
-      this.logger.error('Failed to send new student application notification', err);
+      this.logger.error(
+        'Failed to send new student application notifications',
+        err,
+      );
     });
 
     return record;
@@ -71,6 +76,20 @@ export class StudentsService {
       record.email,
       record.phoneNumber,
     );
-    await this.lineService.pushMessageToGroup(message);
+    await this.runNotifications([
+      this.lineService.pushMessageToGroup(message),
+      this.mailService.sendStudentApplicationConfirmation(record.email),
+    ]);
+  }
+
+  /** LINE 失敗でメール送信が落ちないよう、通知は独立して実行する */
+  private async runNotifications(tasks: Promise<unknown>[]): Promise<void> {
+    const results = await Promise.allSettled(tasks);
+    const firstRejected = results.find(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    );
+    if (firstRejected) {
+      throw firstRejected.reason;
+    }
   }
 }

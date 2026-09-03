@@ -70,6 +70,23 @@ describe('MailService', () => {
     });
   });
 
+  describe('sendStudentApplicationConfirmation', () => {
+    it('応募確認メールを送信する', async () => {
+      process.env.MAIL_HOST = 'smtp.example.com';
+      process.env.MAIL_USER = 'noreply@example.com';
+      const sendSpy = jest.spyOn(service, 'sendMail').mockResolvedValue();
+
+      await service.sendStudentApplicationConfirmation('suzuki@example.com');
+
+      expect(sendSpy).toHaveBeenCalledWith(
+        'suzuki@example.com',
+        MAIL_SUBJECTS.studentApplicationConfirmation,
+        expect.stringContaining('suzuki@example.com'),
+      );
+      expect(sendSpy.mock.calls[0][2]).toContain('ご応募ありがとうございます');
+    });
+  });
+
   describe('sendTeacherApplicationConfirmation', () => {
     it('応募確認メールを送信する', async () => {
       process.env.MAIL_HOST = 'smtp.example.com';
