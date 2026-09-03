@@ -3,6 +3,7 @@ import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import {
   MAIL_SUBJECTS,
+  buildStudentApplicationConfirmationBody,
   buildTeacherApplicationConfirmationBody,
   buildTeacherHiredMailBody,
   buildTeacherInterviewMailBody,
@@ -45,6 +46,14 @@ export class MailService {
       process.env.MAIL_FROM ?? `塾応募管理 <${process.env.MAIL_USER}>`;
 
     await this.getTransporter().sendMail({ from, to, subject, text });
+  }
+
+  async sendStudentApplicationConfirmation(email: string): Promise<void> {
+    await this.sendMail(
+      email,
+      MAIL_SUBJECTS.studentApplicationConfirmation,
+      buildStudentApplicationConfirmationBody(email),
+    );
   }
 
   async sendTeacherApplicationConfirmation(

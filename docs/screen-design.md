@@ -341,8 +341,9 @@ x-api-key: <APPLICATION_API_KEY>
 
 | 項目 | 内容 |
 |------|------|
-| 表示データ | `id`, `submittedAt`, `name` |
+| 表示データ | `id`, `submittedAt`, `name`, `email` |
 | CTA | トップへ戻る |
+| 補足文 | 確認メール送信の案内 |
 
 ---
 

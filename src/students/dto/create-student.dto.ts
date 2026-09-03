@@ -21,7 +21,7 @@ export class CreateStudentApplicationDto {
   @IsEmail()
   @IsNotEmpty()
   @ApiProperty({
-    description: 'メールアドレス',
+    description: 'メールアドレス（確認メールの送信先）',
     example: 'suzuki@example.com',
   })
   email: string;

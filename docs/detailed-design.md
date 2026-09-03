@@ -454,7 +454,7 @@ Google フォーム「生徒募集」に対応する（旧 GAS には未実装�
 |------|------|
 | メソッド / URL | `POST /api/v1/students/applications` |
 | 旧 GAS 関数 | （新規追加） |
-| 実装状況 | DB 保存 ✅ / 運営 LINE 通知 ✅ / API キー任意 |
+| 実装状況 | DB 保存 ✅ / 運営 LINE 通知 ✅ / 確認メール ✅ / API キー任意 |
 
 | フィールド | 型 | 必須 | バリデーション | 説明 |
 |-----------|-----|------|---------------|------|
@@ -474,6 +474,7 @@ Google フォーム「生徒募集」に対応する（旧 GAS には未実装�
 1. リクエストをバリデーション
 2. `StudentApplication` レコードを作成
 3. 運営グループへ LINE 通知を送信（テンプレートは新規定義が必要）
+4. 応募者へ確認メールを送信
 
 ---
 
@@ -1193,7 +1194,7 @@ flowchart TD
 |---|-----|-------------------|---------|
 | 1 | POST teachers/applications | `onFormSubmit` | ✅ DB + 通知 |
 | 2 | PATCH teachers/{id}/status | `onEditSaiyo` + `exec*Process` | ✅ DB + 通知 |
-| 3 | POST students/applications | （新規） | ✅ DB + LINE 通知 |
+| 3 | POST students/applications | （新規） | ✅ DB + LINE + 確認メール |
 | 4 | GET auth/line/login | `redirectToLineLogin` | ✅ |
 | 5 | GET auth/line/callback | `handleCallback` | ✅ |
 | 6 | POST webhooks/timerex | `doPost` | ✅ |

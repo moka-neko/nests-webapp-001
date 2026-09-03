@@ -34,7 +34,7 @@ export class StudentsController {
   /**
    * API #3: POST /api/v1/students/applications
    * 生徒の新規応募を受け付け、データベースへ保存。
-   * 運営グループへの通知等を行う。
+   * 運営グループへのLINE通知と、応募者への確認メール送信を行う。
    */
   @Public()
   @UseGuards(ApiKeyGuard)
@@ -44,7 +44,7 @@ export class StudentsController {
   @ApiOperation({
     summary: '生徒の新規応募',
     description:
-      '生徒の新規応募を受け付け、データベースへ保存する。運営グループへの通知等を行う。',
+      '生徒の新規応募を受け付け、データベースへ保存する。運営グループへのLINE通知と、応募者への確認メール送信を行う。',
   })
   @ApiResponse({
     status: 201,

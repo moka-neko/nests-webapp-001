@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { LineService } from '../line/line.service';
+import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StudentsService } from './students.service';
 
@@ -32,14 +33,20 @@ describe('StudentsService', () => {
     pushMessageToGroup: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mailServiceMock = {
+    sendStudentApplicationConfirmation: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
+    lineServiceMock.pushMessageToGroup.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StudentsService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: LineService, useValue: lineServiceMock },
+        { provide: MailService, useValue: mailServiceMock },
       ],
     }).compile();
 
@@ -51,7 +58,7 @@ describe('StudentsService', () => {
   });
 
   describe('create', () => {
-    it('応募を作成し運営グループへLINE通知する', async () => {
+    it('応募を作成し運営LINE通知と確認メールを送信する', async () => {
       prismaMock.studentApplication.create.mockResolvedValue(mockStudent);
 
       const result = await service.create({
@@ -65,6 +72,28 @@ describe('StudentsService', () => {
       expect(lineServiceMock.pushMessageToGroup).toHaveBeenCalledWith(
         expect.stringContaining('鈴木 花子'),
       );
+      expect(
+        mailServiceMock.sendStudentApplicationConfirmation,
+      ).toHaveBeenCalledWith('suzuki@example.com');
+    });
+
+    it('運営LINEが失敗しても確認メールは送信する', async () => {
+      prismaMock.studentApplication.create.mockResolvedValue(mockStudent);
+      lineServiceMock.pushMessageToGroup.mockRejectedValue(
+        new Error('LINE push message failed: 400'),
+      );
+
+      const result = await service.create({
+        email: mockStudent.email,
+        name: mockStudent.name,
+        phoneNumber: mockStudent.phoneNumber,
+        nationality: mockStudent.nationality,
+      });
+
+      expect(result).toEqual(mockStudent);
+      expect(
+        mailServiceMock.sendStudentApplicationConfirmation,
+      ).toHaveBeenCalledWith('suzuki@example.com');
     });
   });
 

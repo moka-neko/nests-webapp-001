@@ -1,4 +1,5 @@
 import {
+  buildStudentApplicationConfirmationBody,
   buildTeacherApplicationConfirmationBody,
   buildTeacherLineLinkUrl,
 } from './notification-templates';
@@ -70,6 +71,18 @@ describe('buildTeacherApplicationConfirmationBody', () => {
     const body = buildTeacherApplicationConfirmationBody('yamada@example.com');
 
     expect(body).toContain('ご応募ありがとうございます');
+    expect(body).not.toContain('/line-link');
+    expect(body).not.toContain('LINE');
+  });
+});
+
+describe('buildStudentApplicationConfirmationBody', () => {
+  it('応募受付の確認文を組み立てる', () => {
+    const body = buildStudentApplicationConfirmationBody('suzuki@example.com');
+
+    expect(body).toContain('suzuki@example.com 様');
+    expect(body).toContain('ご応募ありがとうございます');
+    expect(body).toContain('応募を受け付けました');
     expect(body).not.toContain('/line-link');
     expect(body).not.toContain('LINE');
   });

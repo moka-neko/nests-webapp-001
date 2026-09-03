@@ -6,6 +6,7 @@ export const MAIL_SUBJECTS = {
   teacherInterview: '【面接のご案内】',
   teacherMeetingUrl: '【面接URLのご案内】',
   teacherApplicationConfirmation: '【応募受付完了】',
+  studentApplicationConfirmation: '【応募受付完了】',
 } as const;
 
 export function buildTeacherHiredMailBody(): string {
@@ -69,6 +70,10 @@ export function buildTeacherApplicationConfirmationBody(
   }
 
   return lines.join('\n');
+}
+
+export function buildStudentApplicationConfirmationBody(email: string): string {
+  return `${email} 様\n\nご応募ありがとうございます。応募を受け付けました。`;
 }
 
 /** LINE 通知テンプレート */
