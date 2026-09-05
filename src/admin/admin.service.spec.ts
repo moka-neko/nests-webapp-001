@@ -238,10 +238,13 @@ describe('AdminService', () => {
           name: '新規管理者',
         },
       });
-      const hashed = prismaMock.adminUser.create.mock.calls[0][0].data
-        .passwordHash as string;
-      expect(hashed).not.toBe('password123');
-      await expect(bcrypt.compare('password123', hashed)).resolves.toBe(true);
+      const createArg = prismaMock.adminUser.create.mock.calls[0][0] as {
+        data: { email: string; passwordHash: string; name: string };
+      };
+      expect(createArg.data.passwordHash).not.toBe('password123');
+      await expect(
+        bcrypt.compare('password123', createArg.data.passwordHash),
+      ).resolves.toBe(true);
     });
 
     it('重複メールアドレスは ConflictException', async () => {

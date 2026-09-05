@@ -299,10 +299,9 @@ describe('Admin users (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    expect(Array.isArray(listResponse.body)).toBe(true);
-    expect(
-      listResponse.body.some((user: { email: string }) => user.email === createdEmail),
-    ).toBe(true);
+    const users = listResponse.body as Array<{ email: string }>;
+    expect(Array.isArray(users)).toBe(true);
+    expect(users.some((user) => user.email === createdEmail)).toBe(true);
 
     const newLogin = await request(app.getHttpServer())
       .post('/api/v1/admin/login')
