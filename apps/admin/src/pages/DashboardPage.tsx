@@ -26,6 +26,13 @@ export function DashboardPage() {
           <h2 className="text-lg font-medium">アカウント設定</h2>
           <p className="mt-2 text-sm text-slate-600">MFA の設定・変更</p>
         </Link>
+        <Link
+          to="/settings/users"
+          className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm hover:border-blue-300"
+        >
+          <h2 className="text-lg font-medium">管理者ユーザー</h2>
+          <p className="mt-2 text-sm text-slate-600">管理者の追加・一覧</p>
+        </Link>
       </div>
     </div>
   );

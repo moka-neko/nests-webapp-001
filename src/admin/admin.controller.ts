@@ -16,6 +16,8 @@ import { AdminService } from './admin.service';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { AdminLoginResponseDto } from './dto/admin-login-response.dto';
 import { AdminProfileDto } from './dto/admin-profile.dto';
+import { AdminUserResponseDto } from './dto/admin-user-response.dto';
+import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { MfaDisableDto } from './dto/mfa-disable.dto';
 import { MfaEnableDto } from './dto/mfa-enable.dto';
 import { MfaSetupResponseDto } from './dto/mfa-setup-response.dto';
@@ -107,5 +109,32 @@ export class AdminController {
   @ApiResponse({ status: 401, description: '未認証' })
   me(@CurrentAdmin() admin: AuthenticatedAdmin): Promise<AdminProfileDto> {
     return this.adminService.getProfile(admin);
+  }
+
+  @Get('users')
+  @ApiBearerAuth('bearer')
+  @ApiOperation({
+    summary: '管理者ユーザー一覧',
+    description: '登録済みの管理者ユーザーを作成日時の新しい順で返す',
+  })
+  @ApiResponse({ status: 200, type: [AdminUserResponseDto] })
+  @ApiResponse({ status: 401, description: '未認証' })
+  findAllUsers(): Promise<AdminUserResponseDto[]> {
+    return this.adminService.findAllUsers();
+  }
+
+  @Post('users')
+  @ApiBearerAuth('bearer')
+  @ApiOperation({
+    summary: '管理者ユーザー追加',
+    description:
+      '新しい管理者ユーザーを作成する。作成直後は TOTP 未設定で、追加した本人がログイン後に有効化できる。',
+  })
+  @ApiResponse({ status: 201, type: AdminUserResponseDto })
+  @ApiResponse({ status: 400, description: 'バリデーションエラー' })
+  @ApiResponse({ status: 401, description: '未認証' })
+  @ApiResponse({ status: 409, description: 'メールアドレスが既に登録済み' })
+  createUser(@Body() dto: CreateAdminUserDto): Promise<AdminUserResponseDto> {
+    return this.adminService.createUser(dto);
   }
 }

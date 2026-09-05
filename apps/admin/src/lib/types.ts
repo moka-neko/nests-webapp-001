@@ -58,6 +58,16 @@ export interface AdminProfile {
   totpEnabled: boolean;
 }
 
+export interface AdminUser extends AdminProfile {
+  createdAt: string;
+}
+
+export interface CreateAdminUserRequest {
+  email: string;
+  password: string;
+  name: string;
+}
+
 export interface LoginResponse {
   mfaRequired: boolean;
   accessToken?: string;

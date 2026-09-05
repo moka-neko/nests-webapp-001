@@ -12,6 +12,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { AdminLoginResponseDto } from './dto/admin-login-response.dto';
 import { AdminProfileDto } from './dto/admin-profile.dto';
+import { AdminUserResponseDto } from './dto/admin-user-response.dto';
+import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { MfaDisableDto } from './dto/mfa-disable.dto';
 import { MfaSetupResponseDto } from './dto/mfa-setup-response.dto';
 import { MfaVerifyDto } from './dto/mfa-verify.dto';
@@ -197,6 +199,34 @@ export class AdminService implements OnModuleInit {
     );
   }
 
+  async findAllUsers(): Promise<AdminUserResponseDto[]> {
+    const admins = await this.prisma.adminUser.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return admins.map((admin) => this.toUserResponse(admin));
+  }
+
+  async createUser(dto: CreateAdminUserDto): Promise<AdminUserResponseDto> {
+    const existing = await this.prisma.adminUser.findUnique({
+      where: { email: dto.email },
+    });
+    if (existing) {
+      throw new ConflictException('このメールアドレスは既に登録されています');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const admin = await this.prisma.adminUser.create({
+      data: {
+        email: dto.email,
+        passwordHash,
+        name: dto.name,
+      },
+    });
+
+    this.logger.log(`管理者ユーザーを追加しました: ${admin.email}`);
+    return this.toUserResponse(admin);
+  }
+
   private async validatePassword(email: string, password: string) {
     const admin = await this.prisma.adminUser.findUnique({ where: { email } });
 
@@ -268,6 +298,19 @@ export class AdminService implements OnModuleInit {
       email: admin.email,
       name: admin.name,
       totpEnabled: admin.totpEnabled,
+    };
+  }
+
+  private toUserResponse(admin: {
+    id: string;
+    email: string;
+    name: string;
+    totpEnabled: boolean;
+    createdAt: Date;
+  }): AdminUserResponseDto {
+    return {
+      ...this.toProfile(admin),
+      createdAt: admin.createdAt,
     };
   }
 }

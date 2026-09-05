@@ -135,6 +135,8 @@ VITE_API_BASE_URL=https://api.example.com
 | ADM-09 | アカウント設定 | `/settings` | JWT 必須 |
 | ADM-10 | MFA セットアップ | `/settings/mfa/setup` | JWT 必須 |
 | ADM-11 | MFA 無効化 | `/settings/mfa/disable` | JWT 必須 |
+| ADM-12 | 管理者ユーザー一覧 | `/settings/users` | JWT 必須 |
+| ADM-13 | 管理者ユーザー追加 | `/settings/users/new` | JWT 必須 |
 
 ---
 
@@ -178,6 +180,8 @@ flowchart TB
     SE[ADM-08 生徒編集]
     SET[ADM-09 設定]
     MFA_SETUP[ADM-10 MFAセットアップ]
+    USERS[ADM-12 管理者一覧]
+    USER_NEW[ADM-13 管理者追加]
 
     LOGIN -->|mfaRequired=true| MFA
     LOGIN -->|mfaRequired=false| DASH
@@ -185,12 +189,15 @@ flowchart TB
     DASH --> TL
     DASH --> SL
     DASH --> SET
+    DASH --> USERS
     TL --> TD
     TD --> TE
     TD -->|ステータス変更| TD
     SL --> SE
     SET --> MFA_SETUP
     SET --> ADM-11
+    SET --> USERS
+    USERS --> USER_NEW
 ```
 
 ---
@@ -593,7 +600,7 @@ x-api-key: <APPLICATION_API_KEY>
 |------|------|
 | API | `GET /api/v1/admin/me` |
 | 表示 | `name`, `email`, `totpEnabled` |
-| 操作 | TOTP 有効化 → ADM-10 / TOTP 無効化 → ADM-11 |
+| 操作 | TOTP 有効化 → ADM-10 / TOTP 無効化 → ADM-11 / 管理者ユーザー管理 → ADM-12 |
 
 #### ADM-10: MFA セットアップ
 
@@ -608,6 +615,23 @@ x-api-key: <APPLICATION_API_KEY>
 |------|------|
 | API | `POST /api/v1/admin/mfa/disable` |
 | 入力 | `password`, `code`（6 桁） |
+
+### ADM-12: 管理者ユーザー一覧
+
+| 項目 | 内容 |
+|------|------|
+| API | `GET /api/v1/admin/users` |
+| 表示 | `name`, `email`, `totpEnabled`, `createdAt` |
+| 操作 | 管理者を追加 → ADM-13 |
+
+### ADM-13: 管理者ユーザー追加
+
+| 項目 | 内容 |
+|------|------|
+| API | `POST /api/v1/admin/users` |
+| 入力 | `name`, `email`, `password`, パスワード確認 |
+| バリデーション | パスワード 8 文字以上、確認一致、メール重複時は 409 |
+| 成功後 | ADM-12 へ戻る |
 
 ---
 
@@ -640,6 +664,8 @@ x-api-key: <APPLICATION_API_KEY>
 | ADM-10 | MFA セットアップ | POST | `/api/v1/admin/mfa/setup` | JWT |
 | ADM-10 | MFA 有効化 | POST | `/api/v1/admin/mfa/enable` | JWT |
 | ADM-11 | MFA 無効化 | POST | `/api/v1/admin/mfa/disable` | JWT |
+| ADM-12 | 管理者一覧 | GET | `/api/v1/admin/users` | JWT |
+| ADM-13 | 管理者追加 | POST | `/api/v1/admin/users` | JWT |
 
 ---
 

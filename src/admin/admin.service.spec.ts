@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
@@ -12,6 +12,7 @@ describe('AdminService', () => {
   const prismaMock = {
     adminUser: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -171,6 +172,92 @@ describe('AdminService', () => {
       const result = await service.enableMfa('admin-1', '123456');
 
       expect(result.totpEnabled).toBe(true);
+    });
+  });
+
+  describe('findAllUsers', () => {
+    it('作成日時の新しい順で管理者一覧を返す', async () => {
+      const createdAt = new Date('2026-09-05T00:00:00.000Z');
+      prismaMock.adminUser.findMany.mockResolvedValue([
+        {
+          id: 'admin-2',
+          email: 'newer@example.com',
+          name: '新規',
+          totpEnabled: false,
+          createdAt,
+        },
+        {
+          id: 'admin-1',
+          email: 'admin@example.com',
+          name: '管理者',
+          totpEnabled: true,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      ]);
+
+      const result = await service.findAllUsers();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].email).toBe('newer@example.com');
+      expect(result[0].createdAt).toEqual(createdAt);
+      expect(prismaMock.adminUser.findMany).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+  });
+
+  describe('createUser', () => {
+    it('新規管理者を作成しパスワードはハッシュ化する', async () => {
+      prismaMock.adminUser.findUnique.mockResolvedValue(null);
+      const createdAt = new Date('2026-09-05T00:00:00.000Z');
+      prismaMock.adminUser.create.mockResolvedValue({
+        id: 'admin-2',
+        email: 'new@example.com',
+        name: '新規管理者',
+        totpEnabled: false,
+        createdAt,
+      });
+
+      const result = await service.createUser({
+        email: 'new@example.com',
+        password: 'password123',
+        name: '新規管理者',
+      });
+
+      expect(result).toEqual({
+        id: 'admin-2',
+        email: 'new@example.com',
+        name: '新規管理者',
+        totpEnabled: false,
+        createdAt,
+      });
+      expect(prismaMock.adminUser.create).toHaveBeenCalledWith({
+        data: {
+          email: 'new@example.com',
+          passwordHash: expect.any(String),
+          name: '新規管理者',
+        },
+      });
+      const hashed = prismaMock.adminUser.create.mock.calls[0][0].data
+        .passwordHash as string;
+      expect(hashed).not.toBe('password123');
+      await expect(bcrypt.compare('password123', hashed)).resolves.toBe(true);
+    });
+
+    it('重複メールアドレスは ConflictException', async () => {
+      prismaMock.adminUser.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        email: 'admin@example.com',
+      });
+
+      await expect(
+        service.createUser({
+          email: 'admin@example.com',
+          password: 'password123',
+          name: '重複',
+        }),
+      ).rejects.toThrow(ConflictException);
+      expect(prismaMock.adminUser.create).not.toHaveBeenCalled();
     });
   });
 });

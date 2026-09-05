@@ -50,6 +50,18 @@ export function SettingsPage() {
           )}
         </div>
       </div>
+      <div className="mt-8 max-w-md rounded-lg border border-slate-200 bg-white p-6">
+        <h2 className="text-lg font-medium">管理者ユーザー</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          管理画面にログインできるユーザーを追加できます。
+        </p>
+        <Link
+          to="/settings/users"
+          className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+        >
+          管理者ユーザーを管理
+        </Link>
+      </div>
     </div>
   );
 }

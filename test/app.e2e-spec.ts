@@ -204,3 +204,153 @@ describe('Admin MFA (e2e)', () => {
       });
   });
 });
+
+describe('Admin users (e2e)', () => {
+  const createdEmail = 'e2e-created-admin@example.com';
+  let app: INestApplication<App>;
+  let prisma: PrismaService;
+
+  beforeEach(async () => {
+    process.env.ADMIN_EMAIL = 'e2e-admin@example.com';
+    process.env.ADMIN_PASSWORD = 'e2e-password123';
+    process.env.JWT_SECRET = 'e2e-jwt-secret';
+
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
+    await app.init();
+
+    prisma = moduleFixture.get(PrismaService);
+    const passwordHash = await bcrypt.hash('e2e-password123', 10);
+    await prisma.adminUser.upsert({
+      where: { email: 'e2e-admin@example.com' },
+      update: {
+        passwordHash,
+        totpEnabled: false,
+        totpSecret: null,
+      },
+      create: {
+        email: 'e2e-admin@example.com',
+        passwordHash,
+        name: 'E2E管理者',
+        totpEnabled: false,
+      },
+    });
+    await prisma.adminUser.deleteMany({ where: { email: createdEmail } });
+  });
+
+  afterEach(async () => {
+    await prisma.adminUser.deleteMany({ where: { email: createdEmail } });
+    await app.close();
+  });
+
+  async function loginAsSeedAdmin(): Promise<string> {
+    const loginResponse = await request(app.getHttpServer())
+      .post('/api/v1/admin/login')
+      .send({
+        email: 'e2e-admin@example.com',
+        password: 'e2e-password123',
+      })
+      .expect(200);
+    return loginResponse.body.accessToken as string;
+  }
+
+  it('未認証では管理者一覧・追加できない', async () => {
+    await request(app.getHttpServer()).get('/api/v1/admin/users').expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users')
+      .send({
+        email: createdEmail,
+        password: 'new-password123',
+        name: '追加管理者',
+      })
+      .expect(401);
+  });
+
+  it('ログイン中の管理者はユーザーを追加でき、追加したユーザーでログインできる', async () => {
+    const token = await loginAsSeedAdmin();
+
+    const createResponse = await request(app.getHttpServer())
+      .post('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        email: createdEmail,
+        password: 'new-password123',
+        name: '追加管理者',
+      })
+      .expect(201);
+
+    expect(createResponse.body).toMatchObject({
+      email: createdEmail,
+      name: '追加管理者',
+      totpEnabled: false,
+    });
+    expect(createResponse.body.id).toBeDefined();
+    expect(createResponse.body.passwordHash).toBeUndefined();
+    expect(createResponse.body.totpSecret).toBeUndefined();
+
+    const listResponse = await request(app.getHttpServer())
+      .get('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(Array.isArray(listResponse.body)).toBe(true);
+    expect(
+      listResponse.body.some((user: { email: string }) => user.email === createdEmail),
+    ).toBe(true);
+
+    const newLogin = await request(app.getHttpServer())
+      .post('/api/v1/admin/login')
+      .send({
+        email: createdEmail,
+        password: 'new-password123',
+      })
+      .expect(200);
+
+    expect(newLogin.body.mfaRequired).toBe(false);
+    expect(newLogin.body.accessToken).toBeDefined();
+  });
+
+  it('同じメールアドレスの追加は 409 を返す', async () => {
+    const token = await loginAsSeedAdmin();
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        email: createdEmail,
+        password: 'new-password123',
+        name: '追加管理者',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        email: createdEmail,
+        password: 'another-password123',
+        name: '重複管理者',
+      })
+      .expect(409);
+  });
+
+  it('パスワードが短い場合は 400 を返す', async () => {
+    const token = await loginAsSeedAdmin();
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        email: createdEmail,
+        password: 'short',
+        name: '追加管理者',
+      })
+      .expect(400);
+  });
+});

@@ -366,6 +366,7 @@ Google フォーム「生徒募集」に対応する（旧 GAS には未実装�
 | `POST /admin/login` | なし（`@Public()`） | 管理者ログイン |
 | `POST /admin/mfa/verify` | なし（`@Public()`） | TOTP 第2段階 |
 | `POST /admin/mfa/setup` 等 | JWT Bearer | ログイン中の管理者のみ |
+| `GET/POST /admin/users` | JWT Bearer | 管理者ユーザーの一覧・追加 |
 
 ---
 
@@ -835,6 +836,53 @@ Google Authenticator で QR をスキャン後、`POST /admin/mfa/enable` で有
 | `name` | 表示名 |
 | `totpEnabled` | TOTP 有効フラグ |
 
+---
+
+### Admin #7: 管理者ユーザー一覧
+
+| 項目 | 内容 |
+|------|------|
+| メソッド / URL | `GET /api/v1/admin/users` |
+| 認証 | JWT Bearer 必須 |
+| 実装状況 | ✅ 完了 |
+
+#### レスポンス（AdminUserResponseDto[]）
+
+| フィールド | 説明 |
+|-----------|------|
+| `id` | 管理者 UUID |
+| `email` | メールアドレス |
+| `name` | 表示名 |
+| `totpEnabled` | TOTP 有効フラグ |
+| `createdAt` | 作成日時 |
+
+`passwordHash` と `totpSecret` は返却しない。作成日時の新しい順。
+
+---
+
+### Admin #8: 管理者ユーザー追加
+
+| 項目 | 内容 |
+|------|------|
+| メソッド / URL | `POST /api/v1/admin/users` |
+| 認証 | JWT Bearer 必須 |
+| 実装状況 | ✅ 完了 |
+
+#### リクエストボディ（CreateAdminUserDto）
+
+| フィールド | 型 | 必須 | バリデーション | 説明 |
+|-----------|-----|------|---------------|------|
+| `email` | string | ✅ | `@IsEmail()`, 最大255文字 | ログインメールアドレス |
+| `password` | string | ✅ | 8〜128文字 | 初期パスワード |
+| `name` | string | ✅ | `@IsNotEmpty()`, 最大100文字 | 表示名 |
+
+#### レスポンス
+
+- 成功: HTTP `201 Created` + `AdminUserResponseDto`（`totpEnabled` は `false`）
+- メール重複: HTTP `409 Conflict`
+
+作成した管理者は、既存のログイン画面から初回ログインし、必要に応じて TOTP を有効化する。
+
 ### 5.3 管理者ログイン・TOTP フロー
 
 ```mermaid
@@ -1233,7 +1281,7 @@ flowchart TD
 |---------|------|------|
 | プロジェクト基盤 | 100% | NestJS, Prisma, SQLite, Swagger, helmet, CORS |
 | 応募管理 API（#1–#12） | 100% | CRUD + 通知ロジック完了 |
-| 管理者認証 API | 100% | JWT ログイン + TOTP MFA（6 エンドポイント） |
+| 管理者認証 API | 100% | JWT ログイン + TOTP MFA + 管理者ユーザー追加（8 エンドポイント） |
 | LINE OAuth | 100% | トークン交換・プロフィール取得・DB 紐づけ |
 | LINE Messaging | 100% | Push 通知（未設定時はログスキップ） |
 | メール送信 | 100% | nodemailer（未設定時はログスキップ） |
