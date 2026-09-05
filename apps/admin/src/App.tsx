@@ -6,6 +6,8 @@ import { LoginPage } from './pages/LoginPage';
 import { MfaDisablePage } from './pages/MfaDisablePage';
 import { MfaPage } from './pages/MfaPage';
 import { MfaSetupPage } from './pages/MfaSetupPage';
+import { AdminUserCreatePage } from './pages/AdminUserCreatePage';
+import { AdminUsersListPage } from './pages/AdminUsersListPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { StudentEditPage } from './pages/StudentEditPage';
 import { StudentsListPage } from './pages/StudentsListPage';
@@ -34,6 +36,8 @@ export default function App() {
             <Route path="/students" element={<StudentsListPage />} />
             <Route path="/students/:id/edit" element={<StudentEditPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/users" element={<AdminUsersListPage />} />
+            <Route path="/settings/users/new" element={<AdminUserCreatePage />} />
             <Route path="/settings/mfa/setup" element={<MfaSetupPage />} />
             <Route path="/settings/mfa/disable" element={<MfaDisablePage />} />
           </Route>
