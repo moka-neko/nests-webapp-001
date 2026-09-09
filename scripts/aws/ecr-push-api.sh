@@ -39,7 +39,8 @@ if ! aws ecr describe-repositories \
   exit 1
 fi
 
-docker build \
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+bash "${SCRIPT_DIR}/docker-build-with-retry.sh" \
   --tag "${IMAGE_URI}:${IMAGE_TAG}" \
   .
 

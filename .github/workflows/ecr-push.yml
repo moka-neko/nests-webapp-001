@@ -55,7 +55,7 @@ jobs:
           PUSH_LATEST: ${{ inputs.push_latest }}
         run: |
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY"
-          docker build --tag "$IMAGE_URI:$IMAGE_TAG" .
+          bash scripts/aws/docker-build-with-retry.sh --tag "$IMAGE_URI:$IMAGE_TAG" .
           docker push "$IMAGE_URI:$IMAGE_TAG"
           if [ "$PUSH_LATEST" = "true" ] && [ "$IMAGE_TAG" != "latest" ]; then
             docker tag "$IMAGE_URI:$IMAGE_TAG" "$IMAGE_URI:latest"
