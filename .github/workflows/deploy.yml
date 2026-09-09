@@ -127,7 +127,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY"
-          docker build \
+          bash scripts/aws/docker-build-with-retry.sh \
             --tag "$IMAGE_URI:${GITHUB_SHA}" \
             --tag "$IMAGE_URI:latest" \
             .
@@ -146,11 +146,18 @@ jobs:
             exit 0
           fi
           curl --fail --retry 10 --retry-delay 15 "$API_BASE_URL/health"
+          # 管理画面の管理者一覧は GET /api/v1/admin/users に依存する。
+          # 未認証なら 401。404 は API イメージが古い（エンドポイント未デプロイ）ことを示す。
+          users_status=$(curl -sS -o /dev/null -w "%{http_code}" "$API_BASE_URL/api/v1/admin/users")
+          if [ "$users_status" != "401" ]; then
+            echo "GET /api/v1/admin/users returned ${users_status}, expected 401 (route must exist)"
+            exit 1
+          fi
 
   deploy-admin:
     name: Deploy development admin to S3
     runs-on: ubuntu-latest
-    needs: verify
+    needs: [verify, deploy-api]
     env:
       AWS_ROLE_TO_ASSUME: ${{ secrets.DEV_AWS_ROLE_TO_ASSUME }}
       VITE_API_BASE_URL: ${{ vars.DEV_API_BASE_URL }}
@@ -192,7 +199,7 @@ jobs:
   deploy-public:
     name: Deploy development public site to S3
     runs-on: ubuntu-latest
-    needs: verify
+    needs: [verify, deploy-api]
     env:
       AWS_ROLE_TO_ASSUME: ${{ secrets.DEV_AWS_ROLE_TO_ASSUME }}
       NEXT_PUBLIC_API_BASE_URL: ${{ vars.DEV_API_BASE_URL }}
