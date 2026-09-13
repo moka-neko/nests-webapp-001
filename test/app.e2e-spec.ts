@@ -353,3 +353,180 @@ describe('Admin users (e2e)', () => {
       .expect(400);
   });
 });
+
+describe('Admin profile update (e2e)', () => {
+  const profileEmail = 'e2e-profile@example.com';
+  const renamedEmail = 'e2e-profile-renamed@example.com';
+  let app: INestApplication<App>;
+  let prisma: PrismaService;
+  let profileAdminId: string;
+
+  beforeEach(async () => {
+    process.env.ADMIN_EMAIL = 'e2e-admin@example.com';
+    process.env.ADMIN_PASSWORD = 'e2e-password123';
+    process.env.JWT_SECRET = 'e2e-jwt-secret';
+
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
+    await app.init();
+
+    prisma = moduleFixture.get(PrismaService);
+    const passwordHash = await bcrypt.hash('e2e-password123', 10);
+    await prisma.adminUser.upsert({
+      where: { email: 'e2e-admin@example.com' },
+      update: {
+        passwordHash,
+        totpEnabled: false,
+        totpSecret: null,
+      },
+      create: {
+        email: 'e2e-admin@example.com',
+        passwordHash,
+        name: 'E2E管理者',
+        totpEnabled: false,
+      },
+    });
+
+    await prisma.adminUser.deleteMany({
+      where: { email: { in: [profileEmail, renamedEmail] } },
+    });
+    const created = await prisma.adminUser.create({
+      data: {
+        email: profileEmail,
+        passwordHash,
+        name: 'プロフィール管理者',
+      },
+    });
+    profileAdminId = created.id;
+  });
+
+  afterEach(async () => {
+    await prisma.adminUser.deleteMany({
+      where: { email: { in: [profileEmail, renamedEmail] } },
+    });
+    if (profileAdminId) {
+      await prisma.adminUser.deleteMany({ where: { id: profileAdminId } });
+    }
+    await app.close();
+  });
+
+  async function loginAsProfileAdmin(
+    email = profileEmail,
+    password = 'e2e-password123',
+  ): Promise<string> {
+    const loginResponse = await request(app.getHttpServer())
+      .post('/api/v1/admin/login')
+      .send({ email, password })
+      .expect(200);
+    return loginResponse.body.accessToken as string;
+  }
+
+  it('未認証ではプロフィールを更新できない', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/me')
+      .send({
+        name: '変更後',
+        currentPassword: 'e2e-password123',
+      })
+      .expect(401);
+  });
+
+  it('名前とメールアドレスを更新でき、新しいメールでログインできる', async () => {
+    const token = await loginAsProfileAdmin();
+
+    const response = await request(app.getHttpServer())
+      .patch('/api/v1/admin/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: '更新後の名前',
+        email: renamedEmail,
+        currentPassword: 'e2e-password123',
+      })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      id: profileAdminId,
+      name: '更新後の名前',
+      email: renamedEmail,
+    });
+    expect(response.body.passwordHash).toBeUndefined();
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/login')
+      .send({
+        email: renamedEmail,
+        password: 'e2e-password123',
+      })
+      .expect(200);
+  });
+
+  it('パスワードを更新すると新しいパスワードでログインできる', async () => {
+    const token = await loginAsProfileAdmin();
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        currentPassword: 'e2e-password123',
+        newPassword: 'updated-password123',
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/login')
+      .send({
+        email: profileEmail,
+        password: 'e2e-password123',
+      })
+      .expect(401);
+
+    const newLogin = await request(app.getHttpServer())
+      .post('/api/v1/admin/login')
+      .send({
+        email: profileEmail,
+        password: 'updated-password123',
+      })
+      .expect(200);
+    expect(newLogin.body.accessToken).toBeDefined();
+  });
+
+  it('現在のパスワードが違う場合は 400 を返しログアウトしない', async () => {
+    const token = await loginAsProfileAdmin();
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: '変更後',
+        currentPassword: 'wrong-password',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.name).toBe('プロフィール管理者');
+      });
+  });
+
+  it('既に使われているメールアドレスは 409 を返す', async () => {
+    const token = await loginAsProfileAdmin();
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        email: 'e2e-admin@example.com',
+        currentPassword: 'e2e-password123',
+      })
+      .expect(409);
+  });
+});

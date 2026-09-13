@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
 } from '@nestjs/common';
 import {
@@ -18,6 +19,7 @@ import { AdminLoginResponseDto } from './dto/admin-login-response.dto';
 import { AdminProfileDto } from './dto/admin-profile.dto';
 import { AdminUserResponseDto } from './dto/admin-user-response.dto';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
+import { UpdateAdminProfileDto } from './dto/update-admin-profile.dto';
 import { MfaDisableDto } from './dto/mfa-disable.dto';
 import { MfaEnableDto } from './dto/mfa-enable.dto';
 import { MfaSetupResponseDto } from './dto/mfa-setup-response.dto';
@@ -109,6 +111,28 @@ export class AdminController {
   @ApiResponse({ status: 401, description: '未認証' })
   me(@CurrentAdmin() admin: AuthenticatedAdmin): Promise<AdminProfileDto> {
     return this.adminService.getProfile(admin);
+  }
+
+  @Patch('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('bearer')
+  @ApiOperation({
+    summary: 'ログイン中の管理者プロフィール更新',
+    description:
+      '名前・メールアドレス・パスワードを更新する。変更には現在のパスワードが必要。',
+  })
+  @ApiResponse({ status: 200, type: AdminProfileDto })
+  @ApiResponse({
+    status: 400,
+    description: '現在のパスワードが不正、またはバリデーションエラー',
+  })
+  @ApiResponse({ status: 401, description: '未認証' })
+  @ApiResponse({ status: 409, description: 'メールアドレスが既に登録済み' })
+  updateProfile(
+    @CurrentAdmin() admin: AuthenticatedAdmin,
+    @Body() dto: UpdateAdminProfileDto,
+  ): Promise<AdminProfileDto> {
+    return this.adminService.updateProfile(admin.id, dto);
   }
 
   @Get('users')

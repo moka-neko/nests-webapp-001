@@ -12,6 +12,9 @@ describe('AdminController', () => {
     enableMfa: jest.fn(),
     disableMfa: jest.fn(),
     getProfile: jest.fn(),
+    updateProfile: jest.fn(),
+    findAllUsers: jest.fn(),
+    createUser: jest.fn(),
   };
 
   beforeEach(async () => {

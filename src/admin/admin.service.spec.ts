@@ -1,4 +1,8 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
@@ -261,6 +265,102 @@ describe('AdminService', () => {
         }),
       ).rejects.toThrow(ConflictException);
       expect(prismaMock.adminUser.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateProfile', () => {
+    const currentAdmin = {
+      id: 'admin-1',
+      email: 'admin@example.com',
+      name: '管理者',
+      totpEnabled: false,
+      passwordHash: '',
+    };
+
+    beforeEach(async () => {
+      currentAdmin.passwordHash = await bcrypt.hash('password123', 10);
+    });
+
+    it('名前とメールアドレスを更新する', async () => {
+      prismaMock.adminUser.findUnique
+        .mockResolvedValueOnce(currentAdmin)
+        .mockResolvedValueOnce(null);
+      prismaMock.adminUser.update.mockResolvedValue({
+        ...currentAdmin,
+        name: '新しい名前',
+        email: 'new-admin@example.com',
+      });
+
+      const result = await service.updateProfile('admin-1', {
+        name: '新しい名前',
+        email: 'new-admin@example.com',
+        currentPassword: 'password123',
+      });
+
+      expect(result).toEqual({
+        id: 'admin-1',
+        email: 'new-admin@example.com',
+        name: '新しい名前',
+        totpEnabled: false,
+      });
+      expect(prismaMock.adminUser.update).toHaveBeenCalledWith({
+        where: { id: 'admin-1' },
+        data: {
+          name: '新しい名前',
+          email: 'new-admin@example.com',
+        },
+      });
+    });
+
+    it('パスワードをハッシュ化して更新する', async () => {
+      prismaMock.adminUser.findUnique.mockResolvedValue(currentAdmin);
+      prismaMock.adminUser.update.mockResolvedValue(currentAdmin);
+
+      await service.updateProfile('admin-1', {
+        currentPassword: 'password123',
+        newPassword: 'new-password123',
+      });
+
+      expect(prismaMock.adminUser.update).toHaveBeenCalledWith({
+        where: { id: 'admin-1' },
+        data: { passwordHash: expect.any(String) },
+      });
+      const updateArg = prismaMock.adminUser.update.mock.calls[0][0] as {
+        data: { passwordHash: string };
+      };
+      expect(updateArg.data.passwordHash).not.toBe('new-password123');
+      await expect(
+        bcrypt.compare('new-password123', updateArg.data.passwordHash),
+      ).resolves.toBe(true);
+    });
+
+    it('現在のパスワードが違うと BadRequestException', async () => {
+      prismaMock.adminUser.findUnique.mockResolvedValue(currentAdmin);
+
+      await expect(
+        service.updateProfile('admin-1', {
+          name: '新しい名前',
+          currentPassword: 'wrong-password',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prismaMock.adminUser.update).not.toHaveBeenCalled();
+    });
+
+    it('重複メールアドレスは ConflictException', async () => {
+      prismaMock.adminUser.findUnique
+        .mockResolvedValueOnce(currentAdmin)
+        .mockResolvedValueOnce({
+          id: 'admin-2',
+          email: 'taken@example.com',
+        });
+
+      await expect(
+        service.updateProfile('admin-1', {
+          email: 'taken@example.com',
+          currentPassword: 'password123',
+        }),
+      ).rejects.toThrow(ConflictException);
+      expect(prismaMock.adminUser.update).not.toHaveBeenCalled();
     });
   });
 });
