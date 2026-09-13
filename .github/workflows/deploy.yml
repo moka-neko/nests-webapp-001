@@ -137,10 +137,30 @@ jobs:
       - name: Start App Runner deployment
         run: |
           : "${APP_RUNNER_SERVICE_ARN:?Set DEV_APP_RUNNER_SERVICE_ARN repository secret}"
-          OPERATION_ID=$(aws apprunner start-deployment \
-            --service-arn "$APP_RUNNER_SERVICE_ARN" \
-            --query OperationId \
-            --output text)
+          # 直前のデプロイが進行中だと start-deployment は
+          # "isn't in RUNNING state" で失敗する。RUNNING になるまで待って再試行する。
+          OPERATION_ID=""
+          for i in $(seq 1 40); do
+            STATUS=$(aws apprunner describe-service \
+              --service-arn "$APP_RUNNER_SERVICE_ARN" \
+              --query 'Service.Status' \
+              --output text)
+            echo "App Runner status: ${STATUS} (attempt ${i}/40)"
+            if [ "$STATUS" = "RUNNING" ]; then
+              if OPERATION_ID=$(aws apprunner start-deployment \
+                --service-arn "$APP_RUNNER_SERVICE_ARN" \
+                --query OperationId \
+                --output text); then
+                break
+              fi
+              echo "start-deployment failed; retrying after another RUNNING wait"
+            fi
+            sleep 15
+          done
+          if [ -z "$OPERATION_ID" ]; then
+            echo "Timed out waiting to start App Runner deployment"
+            exit 1
+          fi
           echo "Started App Runner operation ${OPERATION_ID}"
           # start-deployment は非同期。すぐ /health を叩くと旧イメージのまま成功してしまう。
           for i in $(seq 1 40); do
@@ -170,19 +190,25 @@ jobs:
             exit 0
           fi
           curl --fail --retry 10 --retry-delay 15 "$API_BASE_URL/health"
-          # 管理画面の管理者一覧は GET /api/v1/admin/users に依存する。
           # 未認証なら 401。404 は旧イメージのままであることを示す。
-          # App Runner 反映直後の一時的な 404 に備え、しばらくリトライする。
+          users_ok=0
+          me_ok=0
           for i in $(seq 1 20); do
             users_status=$(curl -sS -o /dev/null -w "%{http_code}" "$API_BASE_URL/api/v1/admin/users" || true)
-            if [ "$users_status" = "401" ]; then
-              echo "GET /api/v1/admin/users is available (401)"
+            me_status=$(curl -sS -o /dev/null -w "%{http_code}" -X PATCH \
+              -H "Content-Type: application/json" \
+              -d '{"name":"smoke","currentPassword":"password123"}' \
+              "$API_BASE_URL/api/v1/admin/me" || true)
+            echo "attempt ${i}/20: GET /admin/users=${users_status:-curl-error} PATCH /admin/me=${me_status:-curl-error}"
+            [ "$users_status" = "401" ] && users_ok=1
+            [ "$me_status" = "401" ] && me_ok=1
+            if [ "$users_ok" = "1" ] && [ "$me_ok" = "1" ]; then
+              echo "admin users and profile endpoints are available"
               exit 0
             fi
-            echo "waiting for GET /api/v1/admin/users (got ${users_status:-curl-error}, attempt ${i}/20)"
             sleep 15
           done
-          echo "GET /api/v1/admin/users did not become available"
+          echo "admin endpoints did not become available (users_ok=${users_ok} me_ok=${me_ok})"
           exit 1
 
   deploy-admin:
