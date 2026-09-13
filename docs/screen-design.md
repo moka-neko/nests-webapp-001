@@ -599,8 +599,8 @@ x-api-key: <APPLICATION_API_KEY>
 | 項目 | 内容 |
 |------|------|
 | API | `GET /api/v1/admin/me` |
-| 表示 | `name`, `email`, `totpEnabled` |
-| 操作 | TOTP 有効化 → ADM-10 / TOTP 無効化 → ADM-11 / 管理者ユーザー管理 → ADM-12 |
+| 表示・編集 | `name`, `email`（現在のパスワードで保存）。パスワード変更は任意 |
+| 操作 | プロフィール保存 / TOTP 有効化 → ADM-10 / TOTP 無効化 → ADM-11 / 管理者ユーザー管理 → ADM-12 |
 
 #### ADM-10: MFA セットアップ
 
@@ -661,6 +661,7 @@ x-api-key: <APPLICATION_API_KEY>
 | ADM-07 | 生徒一覧 | GET | `/api/v1/students/applications` | JWT |
 | ADM-08 | 生徒更新 | PUT | `/api/v1/students/applications/{id}` | JWT |
 | ADM-08 | 生徒削除 | DELETE | `/api/v1/students/applications/{id}` | JWT |
+| ADM-09 | プロフィール更新 | PATCH | `/api/v1/admin/me` | JWT |
 | ADM-10 | MFA セットアップ | POST | `/api/v1/admin/mfa/setup` | JWT |
 | ADM-10 | MFA 有効化 | POST | `/api/v1/admin/mfa/enable` | JWT |
 | ADM-11 | MFA 無効化 | POST | `/api/v1/admin/mfa/disable` | JWT |

@@ -14,6 +14,7 @@ import { AdminLoginResponseDto } from './dto/admin-login-response.dto';
 import { AdminProfileDto } from './dto/admin-profile.dto';
 import { AdminUserResponseDto } from './dto/admin-user-response.dto';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
+import { UpdateAdminProfileDto } from './dto/update-admin-profile.dto';
 import { MfaDisableDto } from './dto/mfa-disable.dto';
 import { MfaSetupResponseDto } from './dto/mfa-setup-response.dto';
 import { MfaVerifyDto } from './dto/mfa-verify.dto';
@@ -199,6 +200,57 @@ export class AdminService implements OnModuleInit {
     );
   }
 
+  async updateProfile(
+    adminId: string,
+    dto: UpdateAdminProfileDto,
+  ): Promise<AdminProfileDto> {
+    const admin = await this.findAdminOrFail(adminId);
+
+    const isPasswordValid = await bcrypt.compare(
+      dto.currentPassword,
+      admin.passwordHash,
+    );
+    if (!isPasswordValid) {
+      throw new BadRequestException('現在のパスワードが正しくありません');
+    }
+
+    const data: {
+      name?: string;
+      email?: string;
+      passwordHash?: string;
+    } = {};
+
+    if (dto.name !== undefined && dto.name !== admin.name) {
+      data.name = dto.name;
+    }
+
+    if (dto.email !== undefined && dto.email !== admin.email) {
+      const existing = await this.prisma.adminUser.findUnique({
+        where: { email: dto.email },
+      });
+      if (existing) {
+        throw new ConflictException('このメールアドレスは既に登録されています');
+      }
+      data.email = dto.email;
+    }
+
+    if (dto.newPassword) {
+      data.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    }
+
+    if (Object.keys(data).length === 0) {
+      return this.toProfile(admin);
+    }
+
+    const updated = await this.prisma.adminUser.update({
+      where: { id: adminId },
+      data,
+    });
+
+    this.logger.log(`管理者プロフィールを更新しました: ${updated.email}`);
+    return this.toProfile(updated);
+  }
+
   async findAllUsers(): Promise<AdminUserResponseDto[]> {
     const admins = await this.prisma.adminUser.findMany({
       orderBy: { createdAt: 'desc' },
@@ -262,7 +314,9 @@ export class AdminService implements OnModuleInit {
     adminId: string,
     email: string,
   ): Promise<AdminLoginResponseDto> {
-    const expiresInSeconds = Number(process.env.JWT_EXPIRES_IN_SECONDS ?? 28800);
+    const expiresInSeconds = Number(
+      process.env.JWT_EXPIRES_IN_SECONDS ?? 28800,
+    );
     const accessToken = await this.jwtService.signAsync({
       sub: adminId,
       email,

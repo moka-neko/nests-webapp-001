@@ -68,6 +68,13 @@ export interface CreateAdminUserRequest {
   name: string;
 }
 
+export interface UpdateAdminProfileRequest {
+  name?: string;
+  email?: string;
+  currentPassword: string;
+  newPassword?: string;
+}
+
 export interface LoginResponse {
   mfaRequired: boolean;
   accessToken?: string;

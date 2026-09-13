@@ -366,6 +366,7 @@ Google フォーム「生徒募集」に対応する（旧 GAS には未実装�
 | `POST /admin/login` | なし（`@Public()`） | 管理者ログイン |
 | `POST /admin/mfa/verify` | なし（`@Public()`） | TOTP 第2段階 |
 | `POST /admin/mfa/setup` 等 | JWT Bearer | ログイン中の管理者のみ |
+| `GET/PATCH /admin/me` | JWT Bearer | ログイン中の管理者プロフィール取得・更新 |
 | `GET/POST /admin/users` | JWT Bearer | 管理者ユーザーの一覧・追加 |
 
 ---
@@ -883,6 +884,33 @@ Google Authenticator で QR をスキャン後、`POST /admin/mfa/enable` で有
 
 作成した管理者は、既存のログイン画面から初回ログインし、必要に応じて TOTP を有効化する。
 
+---
+
+### Admin #9: 管理者プロフィール更新
+
+| 項目 | 内容 |
+|------|------|
+| メソッド / URL | `PATCH /api/v1/admin/me` |
+| 認証 | JWT Bearer 必須 |
+| 実装状況 | ✅ 完了 |
+
+#### リクエストボディ（UpdateAdminProfileDto）
+
+| フィールド | 型 | 必須 | バリデーション | 説明 |
+|-----------|-----|------|---------------|------|
+| `currentPassword` | string | ✅ | 8文字以上 | 現在のパスワード（本人確認） |
+| `name` | string | 任意 | 最大100文字 | 表示名 |
+| `email` | string | 任意 | `@IsEmail()`, 最大255文字 | ログインメールアドレス |
+| `newPassword` | string | 任意 | 8〜128文字 | 新しいパスワード。省略時は変更しない |
+
+#### レスポンス
+
+- 成功: HTTP `200 OK` + `AdminProfileDto`
+- 現在のパスワード不一致: HTTP `400 Bad Request`（セッションは維持する）
+- メール重複: HTTP `409 Conflict`
+
+ログイン中の管理者自身のみ更新できる。JWT は既存のものを継続利用する（`sub` は管理者 ID）。
+
 ### 5.3 管理者ログイン・TOTP フロー
 
 ```mermaid
@@ -1281,7 +1309,7 @@ flowchart TD
 |---------|------|------|
 | プロジェクト基盤 | 100% | NestJS, Prisma, SQLite, Swagger, helmet, CORS |
 | 応募管理 API（#1–#12） | 100% | CRUD + 通知ロジック完了 |
-| 管理者認証 API | 100% | JWT ログイン + TOTP MFA + 管理者ユーザー追加（8 エンドポイント） |
+| 管理者認証 API | 100% | JWT ログイン + TOTP MFA + 管理者ユーザー追加 + 自身のプロフィール更新 |
 | LINE OAuth | 100% | トークン交換・プロフィール取得・DB 紐づけ |
 | LINE Messaging | 100% | Push 通知（未設定時はログスキップ） |
 | メール送信 | 100% | nodemailer（未設定時はログスキップ） |
