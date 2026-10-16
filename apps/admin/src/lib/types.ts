@@ -13,6 +13,8 @@ export interface TeacherApplication {
   lineDisplayName: string | null;
   lineUserId: string | null;
   meetingUrl: string | null;
+  interviewCandidateDates: string[];
+  interviewScheduledAt: string | null;
   submittedAt: string;
   updatedAt: string;
 }

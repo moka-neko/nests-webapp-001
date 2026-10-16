@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { formatDateTime } from '@/lib/format';
+import { formatCandidateDates, formatDateTime } from '@/lib/format';
 import { getTeacherResult } from '@/lib/teacher-storage';
 import type { TeacherApplication } from '@/lib/types';
 
@@ -38,9 +38,15 @@ export default function TeacherCompletePage() {
           <dt className="text-slate-500">応募日時</dt>
           <dd className="font-medium">{formatDateTime(data.submittedAt)}</dd>
         </div>
-        <div>
+        <div className="mb-2">
           <dt className="text-slate-500">メールアドレス</dt>
           <dd className="font-medium">{data.email}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">面接候補日</dt>
+          <dd className="font-medium">
+            {formatCandidateDates(data.interviewCandidateDates) || '未選択'}
+          </dd>
         </div>
       </dl>
       <Link

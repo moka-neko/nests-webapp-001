@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 import { saveTeacherResult } from '@/lib/teacher-storage';
-import type { TeacherApplication } from '@/lib/types';
+import type { InterviewCandidateWindow, TeacherApplication } from '@/lib/types';
 
 export default function TeacherApplyPage() {
   const router = useRouter();
@@ -22,6 +22,26 @@ export default function TeacherApplyPage() {
     resumeUrl: '',
     questions: '',
   });
+  const [candidateWindow, setCandidateWindow] =
+    useState<InterviewCandidateWindow | null>(null);
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [datesError, setDatesError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    apiFetch<InterviewCandidateWindow>(
+      '/api/v1/teachers/applications/interview-candidate-dates',
+    )
+      .then((window) => {
+        if (active) setCandidateWindow(window);
+      })
+      .catch(() => {
+        if (active) setDatesError('面接候補日を読み込めませんでした');
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +62,8 @@ export default function TeacherApplyPage() {
             workLocation: form.workLocation,
             resumeUrl: form.resumeUrl,
             questions: form.questions || undefined,
+            interviewCandidateDates:
+              selectedDates.length > 0 ? selectedDates : undefined,
           }),
         },
       );
@@ -49,7 +71,8 @@ export default function TeacherApplyPage() {
       router.push('/apply/teacher/complete');
     } catch (err) {
       if (err instanceof Error && 'fieldErrors' in err) {
-        const fe = (err as { fieldErrors?: Record<string, string> }).fieldErrors;
+        const fe = (err as { fieldErrors?: Record<string, string> })
+          .fieldErrors;
         if (fe) setErrors(fe);
         else setFormError(err.message);
       } else {
@@ -101,6 +124,45 @@ export default function TeacherApplyPage() {
             className="w-full rounded border border-slate-300 px-3 py-2"
           />
         </div>
+        <fieldset className="rounded border border-slate-200 p-3">
+          <legend className="px-1 text-sm font-medium">
+            面接候補日（任意）
+          </legend>
+          {candidateWindow ? (
+            <>
+              <p className="mb-2 text-sm text-slate-600">
+                {candidateWindow.dates[0]?.label}〜
+                {candidateWindow.dates[candidateWindow.dates.length - 1]?.label}
+                の中から、ご都合のよい日を選んでください。選ばなくても応募できます。
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {candidateWindow.dates.map((option) => (
+                  <label
+                    key={option.date}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedDates.includes(option.date)}
+                      onChange={(e) => {
+                        setSelectedDates((current) =>
+                          e.target.checked
+                            ? [...current, option.date]
+                            : current.filter((date) => date !== option.date),
+                        );
+                      }}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-slate-500">
+              {datesError || '候補日を読み込んでいます'}
+            </p>
+          )}
+        </fieldset>
         <label className="flex items-start gap-2 text-sm">
           <input
             type="checkbox"

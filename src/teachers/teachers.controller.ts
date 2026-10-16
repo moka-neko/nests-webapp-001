@@ -26,6 +26,7 @@ import { CreateTeacherApplicationDto } from './dto/create-teacher.dto';
 import { UpdateTeacherApplicationDto } from './dto/update-teacher.dto';
 import { UpdateTeacherStatusDto } from './dto/update-teacher-status.dto';
 import { TeacherApplicationResponseDto } from './dto/teacher-application-response.dto';
+import { InterviewCandidateWindowDto } from './dto/interview-candidate-window.dto';
 
 @ApiTags('teachers')
 @ApiBearerAuth('bearer')
@@ -76,6 +77,26 @@ export class TeachersController {
   })
   async findAll(): Promise<TeacherApplicationResponseDto[]> {
     return this.teachersService.findAll();
+  }
+
+  /**
+   * GET /api/v1/teachers/applications/interview-candidate-dates
+   * 応募フォームに表示する面接候補日（任意・1週間）を返す。
+   */
+  @Public()
+  @Get('interview-candidate-dates')
+  @ApiOperation({
+    summary: '面接候補日の選択期間',
+    description:
+      '先生応募フォームで選択できる面接候補日を返す。任意入力。入力日（日本時間）の14日後以降で最初の月曜日から日曜までの7日間。例: 2026-10-04 の入力では 2026-10-19〜2026-10-25。',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '選択期間の取得に成功',
+    type: InterviewCandidateWindowDto,
+  })
+  getInterviewCandidateWindow(): InterviewCandidateWindowDto {
+    return this.teachersService.getInterviewCandidateWindow();
   }
 
   /**

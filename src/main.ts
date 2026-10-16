@@ -57,6 +57,16 @@ async function bootstrap() {
       },
       'WebhookSecret',
     )
+    .addApiKey(
+      {
+        type: 'apiKey',
+        name: 'x-cron-secret',
+        in: 'header',
+        description:
+          '定期実行用シークレット（CRON_SECRET。未設定時はエンドポイントを拒否）',
+      },
+      'CronSecret',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);

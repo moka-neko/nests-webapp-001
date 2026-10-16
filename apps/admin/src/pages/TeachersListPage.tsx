@@ -4,16 +4,19 @@ import { useQuery } from '@tanstack/react-query';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { StatusBadge } from '../components/StatusBadge';
 import { apiFetch } from '../lib/api';
-import { formatDateTime } from '../lib/format';
+import { formatCandidateDateList, formatDateTime } from '../lib/format';
 import type { TeacherApplication, TeacherStatus } from '../lib/types';
 
 export function TeachersListPage() {
-  const [statusFilter, setStatusFilter] = useState<TeacherStatus | 'ALL'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<TeacherStatus | 'ALL'>(
+    'ALL',
+  );
   const [search, setSearch] = useState('');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['teachers'],
-    queryFn: () => apiFetch<TeacherApplication[]>('/api/v1/teachers/applications'),
+    queryFn: () =>
+      apiFetch<TeacherApplication[]>('/api/v1/teachers/applications'),
   });
 
   const filtered = useMemo(() => {
@@ -40,7 +43,9 @@ export function TeachersListPage() {
       <div className="mb-4 flex flex-wrap gap-3">
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as TeacherStatus | 'ALL')}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as TeacherStatus | 'ALL')
+          }
           className="rounded border border-slate-300 px-3 py-2 text-sm"
         >
           <option value="ALL">すべてのステータス</option>
@@ -71,12 +76,16 @@ export function TeachersListPage() {
                 <th className="px-4 py-3 font-medium">勤務地</th>
                 <th className="px-4 py-3 font-medium">ステータス</th>
                 <th className="px-4 py-3 font-medium">LINE</th>
+                <th className="px-4 py-3 font-medium">面接候補日</th>
                 <th className="px-4 py-3 font-medium">面接 URL</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((t) => (
-                <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50">
+                <tr
+                  key={t.id}
+                  className="border-b border-slate-100 hover:bg-slate-50"
+                >
                   <td className="px-4 py-3 whitespace-nowrap">
                     {formatDateTime(t.submittedAt)}
                   </td>
@@ -96,6 +105,9 @@ export function TeachersListPage() {
                   </td>
                   <td className="px-4 py-3">
                     {t.lineUserId ? '連携済み' : '未連携'}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {formatCandidateDateList(t.interviewCandidateDates)}
                   </td>
                   <td className="px-4 py-3">
                     {t.meetingUrl ? (
