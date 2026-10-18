@@ -5,7 +5,11 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { StatusBadge } from '../components/StatusBadge';
 import { apiFetch } from '../lib/api';
-import { formatDateTime, STATUS_CONFIRM_MESSAGES } from '../lib/format';
+import {
+  formatCandidateDateList,
+  formatDateTime,
+  STATUS_CONFIRM_MESSAGES,
+} from '../lib/format';
 import type { TeacherApplication, TeacherStatus } from '../lib/types';
 
 export function TeacherDetailPage() {
@@ -18,16 +22,20 @@ export function TeacherDetailPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['teachers', id],
-    queryFn: () => apiFetch<TeacherApplication>(`/api/v1/teachers/applications/${id}`),
+    queryFn: () =>
+      apiFetch<TeacherApplication>(`/api/v1/teachers/applications/${id}`),
     enabled: !!id,
   });
 
   const statusMutation = useMutation({
     mutationFn: (status: TeacherStatus) =>
-      apiFetch<TeacherApplication>(`/api/v1/teachers/applications/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      }),
+      apiFetch<TeacherApplication>(
+        `/api/v1/teachers/applications/${id}/status`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ status }),
+        },
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teachers'] });
       setConfirmOpen(false);
@@ -37,7 +45,9 @@ export function TeacherDetailPage() {
 
   const deleteMutation = useMutation({
     mutationFn: () =>
-      apiFetch<void>(`/api/v1/teachers/applications/${id}`, { method: 'DELETE' }),
+      apiFetch<void>(`/api/v1/teachers/applications/${id}`, {
+        method: 'DELETE',
+      }),
     onSuccess: () => navigate('/teachers'),
   });
 
@@ -103,7 +113,11 @@ export function TeacherDetailPage() {
               </a>
             }
           />
-          <Field label="質問事項" value={data.questions ?? '—'} className="sm:col-span-2" />
+          <Field
+            label="質問事項"
+            value={data.questions ?? '—'}
+            className="sm:col-span-2"
+          />
         </dl>
       </div>
 
@@ -118,6 +132,18 @@ export function TeacherDetailPage() {
           </div>
           <Field label="LINE 表示名" value={data.lineDisplayName ?? '—'} />
           <Field label="LINE userId" value={data.lineUserId ?? '—'} />
+          <Field
+            label="面接候補日"
+            value={formatCandidateDateList(data.interviewCandidateDates)}
+          />
+          <Field
+            label="確定面接日時"
+            value={
+              data.interviewScheduledAt
+                ? formatDateTime(data.interviewScheduledAt)
+                : '—'
+            }
+          />
           <Field
             label="面接 URL"
             value={
@@ -139,7 +165,9 @@ export function TeacherDetailPage() {
 
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium">ステータス変更</label>
+            <label className="mb-1 block text-sm font-medium">
+              ステータス変更
+            </label>
             <select
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value as TeacherStatus)}
@@ -163,7 +191,10 @@ export function TeacherDetailPage() {
         </div>
       </div>
 
-      <Link to="/teachers" className="mt-6 inline-block text-blue-600 hover:underline">
+      <Link
+        to="/teachers"
+        className="mt-6 inline-block text-blue-600 hover:underline"
+      >
         ← 一覧に戻る
       </Link>
 

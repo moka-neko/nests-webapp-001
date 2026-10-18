@@ -1034,6 +1034,8 @@ stateDiagram-v2
 | `ADMIN_NAME` | 初期管理者表示名 | `管理者` |
 | `APPLICATION_API_KEY` | 応募 POST 用 API キー（任意） | `***` |
 | `TIMEREX_WEBHOOK_SECRET` | Webhook 検証シークレット（任意） | `***` |
+| `CRON_SECRET` | 定期実行 API の `x-cron-secret`（未設定時は拒否） | `***` |
+| `ADMIN_APP_BASE_URL` | 面接編集画面 URL のベース（管理画面） | `https://admin.example.com` |
 | `CORS_ORIGINS` | 許可 CORS オリジン（カンマ区切り） | `https://admin.example.com` |
 
 ### 8.2 外部連携（本番）

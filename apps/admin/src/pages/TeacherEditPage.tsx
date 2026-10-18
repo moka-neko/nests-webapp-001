@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { apiFetch } from '../lib/api';
+import { toTokyoDateTimeLocal, tokyoDateTimeLocalToIso } from '../lib/format';
 import type { TeacherApplication } from '../lib/types';
 
 export function TeacherEditPage() {
@@ -12,10 +13,12 @@ export function TeacherEditPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['teachers', id],
-    queryFn: () => apiFetch<TeacherApplication>(`/api/v1/teachers/applications/${id}`),
+    queryFn: () =>
+      apiFetch<TeacherApplication>(`/api/v1/teachers/applications/${id}`),
     enabled: !!id,
   });
 
+  const [newDate, setNewDate] = useState('');
   const [form, setForm] = useState({
     nameKanji: '',
     nameKatakana: '',
@@ -23,6 +26,8 @@ export function TeacherEditPage() {
     workLocation: '',
     resumeUrl: '',
     questions: '',
+    interviewCandidateDates: [] as string[],
+    interviewScheduledAt: '',
   });
 
   useEffect(() => {
@@ -34,7 +39,15 @@ export function TeacherEditPage() {
         workLocation: data.workLocation,
         resumeUrl: data.resumeUrl,
         questions: data.questions ?? '',
+        interviewCandidateDates: data.interviewCandidateDates ?? [],
+        interviewScheduledAt: toTokyoDateTimeLocal(data.interviewScheduledAt),
       });
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if (data && window.location.hash === '#interview') {
+      document.getElementById('interview')?.scrollIntoView();
     }
   }, [data]);
 
@@ -43,8 +56,16 @@ export function TeacherEditPage() {
       apiFetch<TeacherApplication>(`/api/v1/teachers/applications/${id}`, {
         method: 'PUT',
         body: JSON.stringify({
-          ...form,
+          nameKanji: form.nameKanji,
+          nameKatakana: form.nameKatakana,
+          age: form.age,
+          workLocation: form.workLocation,
+          resumeUrl: form.resumeUrl,
           questions: form.questions || undefined,
+          interviewCandidateDates: form.interviewCandidateDates,
+          interviewScheduledAt: tokyoDateTimeLocalToIso(
+            form.interviewScheduledAt,
+          ),
         }),
       }),
     onSuccess: () => navigate(`/teachers/${id}`),
@@ -67,7 +88,9 @@ export function TeacherEditPage() {
         className="max-w-xl space-y-4 rounded-lg border border-slate-200 bg-white p-6"
       >
         <div>
-          <label className="mb-1 block text-sm font-medium">メールアドレス</label>
+          <label className="mb-1 block text-sm font-medium">
+            メールアドレス
+          </label>
           <input
             type="email"
             value={data.email}
@@ -114,6 +137,89 @@ export function TeacherEditPage() {
             rows={4}
             className="w-full rounded border border-slate-300 px-3 py-2"
           />
+        </div>
+        <div
+          id="interview"
+          className="space-y-3 rounded border border-slate-200 p-4"
+        >
+          <h2 className="text-base font-medium">面接日程</h2>
+          <p className="text-sm text-slate-600">
+            応募者が選んだ候補日を確認し、確定した面接日時を入力してください。
+          </p>
+          <div>
+            <p className="mb-1 text-sm font-medium">面接候補日</p>
+            {form.interviewCandidateDates.length === 0 ? (
+              <p className="text-sm text-slate-500">未選択</p>
+            ) : (
+              <ul className="mb-2 space-y-1">
+                {form.interviewCandidateDates.map((date) => (
+                  <li
+                    key={date}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <span>{date}</span>
+                    <button
+                      type="button"
+                      className="text-red-600 hover:underline"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          interviewCandidateDates:
+                            form.interviewCandidateDates.filter(
+                              (item) => item !== date,
+                            ),
+                        })
+                      }
+                    >
+                      削除
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+                className="rounded border border-slate-300 px-3 py-2"
+              />
+              <button
+                type="button"
+                className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+                onClick={() => {
+                  if (
+                    !newDate ||
+                    form.interviewCandidateDates.includes(newDate)
+                  )
+                    return;
+                  setForm({
+                    ...form,
+                    interviewCandidateDates: [
+                      ...form.interviewCandidateDates,
+                      newDate,
+                    ].sort(),
+                  });
+                  setNewDate('');
+                }}
+              >
+                追加
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              確定面接日時（日本時間）
+            </label>
+            <input
+              type="datetime-local"
+              value={form.interviewScheduledAt}
+              onChange={(e) =>
+                setForm({ ...form, interviewScheduledAt: e.target.value })
+              }
+              className="w-full rounded border border-slate-300 px-3 py-2"
+            />
+          </div>
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex gap-3">

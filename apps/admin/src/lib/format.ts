@@ -1,3 +1,37 @@
+export function formatCandidateDateList(
+  dates: string[] | null | undefined,
+): string {
+  if (!dates?.length) return '—';
+  return [...dates]
+    .sort()
+    .map((ymd) => {
+      const [, month, day] = ymd.split('-');
+      return `${Number(month)}/${Number(day)}`;
+    })
+    .join('、');
+}
+
+export function toTokyoDateTimeLocal(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const formatted = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(iso));
+  return formatted.replace(' ', 'T');
+}
+
+export function tokyoDateTimeLocalToIso(value: string): string | null {
+  if (!value) return null;
+  const normalized =
+    value.length === 16 ? `${value}:00+09:00` : `${value}+09:00`;
+  return new Date(normalized).toISOString();
+}
+
 export function formatDateTime(iso: string): string {
   return new Intl.DateTimeFormat('ja-JP', {
     timeZone: 'Asia/Tokyo',

@@ -295,6 +295,7 @@ x-api-key: <APPLICATION_API_KEY>
 | `workLocation` | 勤務希望場所 | ✅ | text | 空不可 |
 | `resumeUrl` | 履歴書 URL | ✅ | url | URL 形式（Google Drive 等） |
 | `questions` | 質問事項 | — | textarea | 任意 |
+| `interviewCandidateDates` | 面接候補日 | — | checkbox（複数） | 任意。`GET /api/v1/teachers/applications/interview-candidate-dates` が返す 7 日（月曜〜日曜）だけ選択可。未選択でも送信できる |
 | — | 個人情報の取り扱いに同意する | ✅ | checkbox | 送信前チェック必須（UI のみ。API には送らない） |
 
 #### 送信ボタン
@@ -449,6 +450,7 @@ x-api-key: <APPLICATION_API_KEY>
 | 勤務地 | `workLocation` | — |
 | ステータス | `status` | バッジ表示（下表） |
 | LINE | `lineUserId` | 連携済み / 未連携 |
+| 面接候補日 | `interviewCandidateDates` | 未選択は「—」 |
 | 面接 URL | `meetingUrl` | あれば外部リンク |
 
 #### ステータス表示
@@ -499,6 +501,8 @@ x-api-key: <APPLICATION_API_KEY>
 | 選考ステータス | `status` | ドロップダウン + 変更ボタン（下記） |
 | LINE 表示名 | `lineDisplayName` | 読み取り専用 |
 | LINE userId | `lineUserId` | 読み取り専用 |
+| 面接候補日 | `interviewCandidateDates` | 未選択は「—」 |
+| 確定面接日時 | `interviewScheduledAt` | 日本時間で表示。未設定は「—」 |
 | 面接 URL | `meetingUrl` | あれば外部リンク |
 
 #### ステータス変更（インライン操作）
@@ -544,7 +548,11 @@ x-api-key: <APPLICATION_API_KEY>
 | `workLocation` | ✅ |
 | `resumeUrl` | ✅ |
 | `questions` | ✅ |
+| `interviewCandidateDates` | ✅（日付の追加・削除。応募時の表示期間外も可） |
+| `interviewScheduledAt` | ✅（日本時間の日時。空欄でクリア） |
 | `email` | ❌（表示のみ） |
+
+面接日程の編集欄には `id="interview"` を付ける。毎週月曜の運営 LINE は、応募者ごとにこの画面の URL（`/teachers/:id/edit#interview`）を通知する。
 
 成功後: ADM-05 へ戻る
 

@@ -1,10 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
   IsInt,
+  IsISO8601,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUrl,
+  Matches,
   Max,
   Min,
 } from 'class-validator';
@@ -54,4 +59,28 @@ export class UpdateTeacherApplicationDto {
     example: '交通費支給はありますか？',
   })
   questions?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @ArrayMaxSize(31)
+  @IsString({ each: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { each: true })
+  @ApiPropertyOptional({
+    description:
+      '面接候補日（YYYY-MM-DD）。運営側の日程調整では応募時の表示期間外も指定できる',
+    example: ['2026-10-19', '2026-10-21'],
+    type: [String],
+  })
+  interviewCandidateDates?: string[];
+
+  @IsOptional()
+  @IsISO8601()
+  @ApiPropertyOptional({
+    type: 'string',
+    nullable: true,
+    description: '確定した面接日時（ISO8601）。null でクリアする',
+    example: '2026-10-21T05:00:00.000Z',
+  })
+  interviewScheduledAt?: string | null;
 }

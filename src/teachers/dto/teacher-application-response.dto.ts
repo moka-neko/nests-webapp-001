@@ -85,6 +85,21 @@ export class TeacherApplicationResponseDto {
   meetingUrl: string | null;
 
   @ApiProperty({
+    description: '面接候補日（YYYY-MM-DD、任意）',
+    example: ['2026-10-19', '2026-10-21'],
+    type: [String],
+  })
+  interviewCandidateDates: string[];
+
+  @ApiPropertyOptional({
+    type: 'string',
+    description: '確定した面接日時',
+    example: '2026-10-21T05:00:00.000Z',
+    nullable: true,
+  })
+  interviewScheduledAt: Date | null;
+
+  @ApiProperty({
     description: '応募日時（Googleフォーム回答日時）',
     example: '2026-06-01T10:00:00.000Z',
   })

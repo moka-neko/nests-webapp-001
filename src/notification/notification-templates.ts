@@ -29,8 +29,52 @@ export function buildOperatorTeacherApplicationMessage(
   nameKanji: string,
   email: string,
   resumeUrl: string,
+  interviewCandidateDates: string[] = [],
 ): string {
-  return `【新規先生応募】\n氏名: ${nameKanji}\nメール: ${email}\n履歴書: ${resumeUrl}`;
+  const lines = [
+    '【新規先生応募】',
+    `氏名: ${nameKanji}`,
+    `メール: ${email}`,
+    `履歴書: ${resumeUrl}`,
+  ];
+  if (interviewCandidateDates.length > 0) {
+    lines.push(`面接候補日: ${interviewCandidateDates.join(', ')}`);
+  }
+  return lines.join('\n');
+}
+
+const LINE_TEXT_LIMIT = 4800;
+
+export function buildWeeklyInterviewReminderMessages(
+  applicants: { nameKanji: string; editUrl: string }[],
+): string[] {
+  const header = '今週の面接日程を日曜日までに編集をお願いいたします。';
+  const blocks = applicants.map(
+    (applicant) => `${applicant.nameKanji}\n${applicant.editUrl}`,
+  );
+  const messages: string[] = [];
+  let current = header;
+
+  for (const block of blocks) {
+    const next = `${current}\n\n${block}`;
+    if (next.length <= LINE_TEXT_LIMIT) {
+      current = next;
+      continue;
+    }
+    messages.push(current);
+    current = `${header}\n\n${block}`;
+  }
+
+  messages.push(current);
+  return messages;
+}
+
+export function buildAdminInterviewEditUrl(
+  adminBaseUrl: string,
+  applicationId: string,
+): string {
+  const base = adminBaseUrl.replace(/\/+$/, '');
+  return `${base}/teachers/${applicationId}/edit#interview`;
 }
 
 export function buildOperatorStudentApplicationMessage(

@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TeacherApplicationStatus } from '@prisma/client';
 import { LineService } from '../line/line.service';
@@ -22,6 +22,8 @@ describe('TeachersService', () => {
     lineDisplayName: null,
     lineUserId: null,
     meetingUrl: null,
+    interviewCandidateDates: [] as string[],
+    interviewScheduledAt: null,
     submittedAt: new Date('2026-06-01T10:00:00.000Z'),
     updatedAt: new Date('2026-06-01T10:00:00.000Z'),
   };
@@ -90,6 +92,56 @@ describe('TeachersService', () => {
         mailServiceMock.sendTeacherApplicationConfirmation,
       ).toHaveBeenCalledWith('yamada@example.com');
     });
+
+    it('表示期間内の面接候補日を保存する', async () => {
+      prismaMock.teacherApplication.create.mockResolvedValue({
+        ...mockTeacher,
+        interviewCandidateDates: ['2026-10-19', '2026-10-21'],
+      });
+
+      await service.create(
+        {
+          email: mockTeacher.email,
+          nameKanji: mockTeacher.nameKanji,
+          nameKatakana: mockTeacher.nameKatakana,
+          age: mockTeacher.age,
+          workLocation: mockTeacher.workLocation,
+          resumeUrl: mockTeacher.resumeUrl,
+          interviewCandidateDates: ['2026-10-21', '2026-10-19'],
+        },
+        new Date('2026-10-04T03:00:00.000Z'),
+      );
+
+      const createCalls = prismaMock.teacherApplication.create.mock
+        .calls as unknown as Array<
+        [{ data: { interviewCandidateDates: string[] } }]
+      >;
+      expect(createCalls[0][0].data.interviewCandidateDates).toEqual([
+        '2026-10-19',
+        '2026-10-21',
+      ]);
+      expect(lineServiceMock.pushMessageToGroup).toHaveBeenCalledWith(
+        expect.stringContaining('2026-10-19, 2026-10-21'),
+      );
+    });
+
+    it('表示期間外の面接候補日は拒否する', async () => {
+      await expect(
+        service.create(
+          {
+            email: mockTeacher.email,
+            nameKanji: mockTeacher.nameKanji,
+            nameKatakana: mockTeacher.nameKatakana,
+            age: mockTeacher.age,
+            workLocation: mockTeacher.workLocation,
+            resumeUrl: mockTeacher.resumeUrl,
+            interviewCandidateDates: ['2026-10-12'],
+          },
+          new Date('2026-10-04T03:00:00.000Z'),
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(prismaMock.teacherApplication.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('findAll', () => {
@@ -113,9 +165,9 @@ describe('TeachersService', () => {
         status: TeacherApplicationStatus.INTERVIEW,
       });
 
-      expect(mailServiceMock.sendTeacherInterviewNotification).toHaveBeenCalledWith(
-        'yamada@example.com',
-      );
+      expect(
+        mailServiceMock.sendTeacherInterviewNotification,
+      ).toHaveBeenCalledWith('yamada@example.com');
     });
 
     it('採用時にメールとLINE個別通知を送信する', async () => {

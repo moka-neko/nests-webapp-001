@@ -8,8 +8,15 @@ export interface TeacherApplication {
   resumeUrl: string;
   questions: string | null;
   status: string;
+  interviewCandidateDates?: string[];
   submittedAt: string;
   updatedAt: string;
+}
+
+export interface InterviewCandidateWindow {
+  startDate: string;
+  endDate: string;
+  dates: { date: string; label: string }[];
 }
 
 export interface StudentApplication {

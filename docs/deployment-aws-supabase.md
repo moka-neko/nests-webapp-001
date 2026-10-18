@@ -101,6 +101,8 @@ MAIL_USER=<optional development value>
 MAIL_PASSWORD=<optional development value>
 MAIL_FROM=塾応募管理 Dev <noreply@example.com>
 TIMEREX_WEBHOOK_SECRET=<optional development value>
+CRON_SECRET=<random secret for the Monday interview reminder>
+ADMIN_APP_BASE_URL=https://dev-admin.example.com
 ```
 
 Do not set `APPLICATION_API_KEY` if the public static site posts directly from
@@ -207,3 +209,28 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/app_test \
 DIRECT_URL=postgresql://postgres:postgres@localhost:5432/app_test \
 npx prisma migrate deploy
 ```
+
+## Monday interview reminder
+
+The API does not run a weekly job by itself. App Runner can restart or scale,
+so an in-process cron is not a reliable scheduler.
+
+Expose the work as `POST /api/v1/jobs/weekly-interview-reminder` and call it
+from outside the API process. The header `x-cron-secret` must match
+`CRON_SECRET`.
+
+Preferred trigger on the current development AWS setup: **Amazon EventBridge
+Scheduler**, not a custom Lambda. Create a schedule for `cron(0 9 ? * MON *)`
+with the timezone `Asia/Tokyo`, and an API destination that POSTs to the
+development API. EventBridge can call HTTPS directly, so there is no function
+to deploy or keep warm.
+
+Lambda is a valid wrapper if a schedule later needs extra logic, but it is not
+required for this reminder. A long-running host such as the production ConoHa
+VPS can use system cron and `curl` against the same endpoint instead.
+
+The call notifies the operations LINE group about teacher applications whose
+interview candidate dates fall in the current Japan week and whose status is
+still `PENDING` or `INTERVIEW`. Each person is listed with their name and the
+admin edit URL `/teachers/{id}/edit#interview`. A week with no targets sends
+nothing. A second call in the same week does not send again unless `?force=true`.

@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { TeacherApplicationStatus } from '@prisma/client';
 import { LineService } from '../line/line.service';
 import { MailService } from '../mail/mail.service';
@@ -9,9 +14,15 @@ import {
 } from '../notification/notification-templates';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTeacherApplicationDto } from './dto/create-teacher.dto';
+import { InterviewCandidateWindowDto } from './dto/interview-candidate-window.dto';
 import { UpdateTeacherApplicationDto } from './dto/update-teacher.dto';
 import { UpdateTeacherStatusDto } from './dto/update-teacher-status.dto';
 import { TeacherApplicationResponseDto } from './dto/teacher-application-response.dto';
+import {
+  getInterviewCandidateWindow as buildInterviewCandidateWindow,
+  normalizeEditableCandidateDates,
+  normalizeInterviewCandidateDates,
+} from './interview-calendar';
 
 @Injectable()
 export class TeachersService {
@@ -23,11 +34,28 @@ export class TeachersService {
     private readonly mailService: MailService,
   ) {}
 
+  /** 応募フォームに表示する面接候補日（任意・1週間） */
+  getInterviewCandidateWindow(
+    now: Date = new Date(),
+  ): InterviewCandidateWindowDto {
+    return buildInterviewCandidateWindow(now);
+  }
+
   /** API #1: 先生の新規応募を受け付け、DBへ保存し通知を行う */
   async create(
     dto: CreateTeacherApplicationDto,
+    now: Date = new Date(),
   ): Promise<TeacherApplicationResponseDto> {
-    const record = await this.prisma.teacherApplication.create({ data: dto });
+    const interviewCandidateDates = this.resolveCandidateDates(
+      dto.interviewCandidateDates ?? [],
+      now,
+    );
+    const record = await this.prisma.teacherApplication.create({
+      data: {
+        ...dto,
+        interviewCandidateDates,
+      },
+    });
 
     await this.notifyNewApplication(record).catch((err: unknown) => {
       this.logger.error('Failed to send new application notifications', err);
@@ -66,15 +94,32 @@ export class TeachersService {
     return updated;
   }
 
-  /** API #8: 先生の基本情報を更新する */
+  /** API #8: 先生の基本情報と面接日程を更新する */
   async update(
     id: string,
     dto: UpdateTeacherApplicationDto,
   ): Promise<TeacherApplicationResponseDto> {
     await this.findOneOrFail(id);
+    const { interviewCandidateDates, interviewScheduledAt, ...rest } = dto;
     return this.prisma.teacherApplication.update({
       where: { id },
-      data: dto,
+      data: {
+        ...rest,
+        ...(interviewCandidateDates !== undefined
+          ? {
+              interviewCandidateDates: this.resolveEditableCandidateDates(
+                interviewCandidateDates,
+              ),
+            }
+          : {}),
+        ...(interviewScheduledAt !== undefined
+          ? {
+              interviewScheduledAt: interviewScheduledAt
+                ? new Date(interviewScheduledAt)
+                : null,
+            }
+          : {}),
+      },
     });
   }
 
@@ -82,6 +127,22 @@ export class TeachersService {
   async remove(id: string): Promise<void> {
     await this.findOneOrFail(id);
     await this.prisma.teacherApplication.delete({ where: { id } });
+  }
+
+  private resolveCandidateDates(dates: string[], now: Date): string[] {
+    const result = normalizeInterviewCandidateDates(dates, now);
+    if ('error' in result) {
+      throw new BadRequestException(result.error);
+    }
+    return result.dates;
+  }
+
+  private resolveEditableCandidateDates(dates: string[]): string[] {
+    const result = normalizeEditableCandidateDates(dates);
+    if ('error' in result) {
+      throw new BadRequestException(result.error);
+    }
+    return result.dates;
   }
 
   private async findOneOrFail(id: string) {
@@ -101,6 +162,7 @@ export class TeachersService {
       record.nameKanji,
       record.email,
       record.resumeUrl,
+      record.interviewCandidateDates,
     );
     await this.lineService.pushMessageToGroup(groupMessage);
     await this.mailService.sendTeacherApplicationConfirmation(record.email);
