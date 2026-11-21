@@ -99,11 +99,22 @@ MAIL_PORT=587
 MAIL_SECURE=false
 MAIL_USER=<optional development value>
 MAIL_PASSWORD=<optional development value>
-MAIL_FROM=塾応募管理 Dev <noreply@example.com>
+MAIL_FROM=友達先生日本語会話教室 Dev <noreply@example.com>
 TIMEREX_WEBHOOK_SECRET=<optional development value>
 CRON_SECRET=<random secret for the Monday interview reminder>
 ADMIN_APP_BASE_URL=https://dev-admin.example.com
+OPERATOR_NOTIFICATION_EMAILS=<optional, comma separated; defaults to admin users>
+GOOGLE_CLIENT_ID=<optional, see docs/google-meet-setup.md>
+GOOGLE_CLIENT_SECRET=<optional, see docs/google-meet-setup.md>
+GOOGLE_REFRESH_TOKEN=<optional, see docs/google-meet-setup.md>
+GOOGLE_CALENDAR_ID=primary
+GOOGLE_SEND_CALENDAR_INVITES=false
+INTERVIEW_DURATION_MINUTES=30
 ```
+
+Store `CRON_SECRET`, `GOOGLE_CLIENT_SECRET` and `GOOGLE_REFRESH_TOKEN` as
+App Runner secrets (Secrets Manager / SSM references) rather than plain
+environment variables where possible.
 
 Do not set `APPLICATION_API_KEY` if the public static site posts directly from
 the browser. A browser-visible API key is not a secret. If an application API
@@ -215,22 +226,72 @@ npx prisma migrate deploy
 The API does not run a weekly job by itself. App Runner can restart or scale,
 so an in-process cron is not a reliable scheduler.
 
-Expose the work as `POST /api/v1/jobs/weekly-interview-reminder` and call it
-from outside the API process. The header `x-cron-secret` must match
-`CRON_SECRET`.
+The work is exposed as `POST /api/v1/jobs/weekly-interview-reminder`. The
+header `x-cron-secret` must match `CRON_SECRET`.
 
-Preferred trigger on the current development AWS setup: **Amazon EventBridge
-Scheduler**, not a custom Lambda. Create a schedule for `cron(0 9 ? * MON *)`
-with the timezone `Asia/Tokyo`, and an API destination that POSTs to the
-development API. EventBridge can call HTTPS directly, so there is no function
-to deploy or keep warm.
+### What the call does
 
-Lambda is a valid wrapper if a schedule later needs extra logic, but it is not
-required for this reminder. A long-running host such as the production ConoHa
-VPS can use system cron and `curl` against the same endpoint instead.
+If at least one teacher application with status `PENDING` or `INTERVIEW` has
+an interview candidate date in the current Japan week (Monday-Sunday), it
+sends the following text to the operations LINE group and by email
+(`OPERATOR_NOTIFICATION_EMAILS`, or every admin user's email when unset):
 
-The call notifies the operations LINE group about teacher applications whose
-interview candidate dates fall in the current Japan week and whose status is
-still `PENDING` or `INTERVIEW`. Each person is listed with their name and the
-admin edit URL `/teachers/{id}/edit#interview`. A week with no targets sends
-nothing. A second call in the same week does not send again unless `?force=true`.
+```text
+今週の面接日程を日曜日までに編集をお願いいたします。
+面接日程調整URL
+https://dev-admin.example.com/interviews?week=YYYY-MM-DD
+```
+
+The URL opens the admin "面接日程調整" page, where the operator picks the
+applicant and moves to that applicant's edit screen. A week with no targets
+sends nothing. A second call in the same week does not send again unless
+`?force=true`, so retries are safe.
+
+### Trigger on the development AWS account
+
+EventBridge Scheduler cannot target an EventBridge API destination directly,
+so the stack in `infra/dev/weekly-interview-reminder.yml` chains:
+
+```text
+EventBridge Scheduler  cron(0 9 ? * MON *)  Asia/Tokyo
+  -> custom event bus  <prefix>-jobs   (PutEvents)
+  -> rule              <prefix>-weekly-interview-reminder
+  -> API destination   POST {ApiBaseUrl}/api/v1/jobs/weekly-interview-reminder
+                       connection adds  x-cron-secret: <CronSecret>
+```
+
+There is no Lambda to deploy. The connection keeps the secret in AWS Secrets
+Manager (about USD 0.40/month); Scheduler, the rule and API destination
+invocations are negligible at one call per week.
+
+Deploy once from a shell with credentials for the development account
+(`CRON_SECRET` must be the same value as on App Runner):
+
+```bash
+aws cloudformation deploy \
+  --region ap-northeast-1 \
+  --stack-name juku-dev-weekly-interview-reminder \
+  --template-file infra/dev/weekly-interview-reminder.yml \
+  --capabilities CAPABILITY_IAM \
+  --parameter-overrides \
+    ApiBaseUrl=https://dev-api.example.com \
+    CronSecret="$CRON_SECRET"
+```
+
+Run the same command again after changing the template, the API URL or the
+secret. To pause the reminder, add `ScheduleState=DISABLED` to the parameter
+overrides.
+
+To check it end to end without waiting for Monday, call the API directly:
+
+```bash
+curl -X POST "https://dev-api.example.com/api/v1/jobs/weekly-interview-reminder?force=true" \
+  -H "x-cron-secret: $CRON_SECRET"
+```
+
+The stack is deployed by hand on purpose: it changes rarely, and deploying it
+from GitHub Actions would need CloudFormation and IAM role creation rights on
+the OIDC deploy role.
+
+A long-running host such as the production ConoHa VPS can use system cron and
+`curl` against the same endpoint instead.

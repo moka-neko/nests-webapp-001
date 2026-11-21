@@ -1,0 +1,152 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Development: weekly interview reminder.
+  EventBridge Scheduler (every Monday 09:00 Asia/Tokyo) -> custom event bus
+  -> rule -> API destination (POST /api/v1/jobs/weekly-interview-reminder
+  with the x-cron-secret header). No Lambda.
+  EventBridge Scheduler cannot target an API destination directly, so the
+  schedule puts an event on a dedicated bus and a rule forwards it.
+
+Parameters:
+  NamePrefix:
+    Type: String
+    Default: juku-dev
+    AllowedPattern: '^[a-z0-9-]{1,30}$'
+    Description: Prefix for resource names.
+  ApiBaseUrl:
+    Type: String
+    AllowedPattern: '^https://[^/]+$'
+    Description: >-
+      Development API base URL without a trailing slash
+      (same value as the DEV_API_BASE_URL repository variable).
+  CronSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    Description: Must match CRON_SECRET on the App Runner service.
+  ScheduleExpression:
+    Type: String
+    Default: cron(0 9 ? * MON *)
+    Description: EventBridge Scheduler expression, evaluated in ScheduleTimezone.
+  ScheduleTimezone:
+    Type: String
+    Default: Asia/Tokyo
+  ScheduleState:
+    Type: String
+    Default: ENABLED
+    AllowedValues: [ENABLED, DISABLED]
+
+Resources:
+  JobsEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub '${NamePrefix}-jobs'
+
+  CronConnection:
+    Type: AWS::Events::Connection
+    Properties:
+      Name: !Sub '${NamePrefix}-api-cron'
+      Description: Sends x-cron-secret to the development API.
+      AuthorizationType: API_KEY
+      AuthParameters:
+        ApiKeyAuthParameters:
+          ApiKeyName: x-cron-secret
+          ApiKeyValue: !Ref CronSecret
+
+  WeeklyReminderApiDestination:
+    Type: AWS::Events::ApiDestination
+    Properties:
+      Name: !Sub '${NamePrefix}-weekly-interview-reminder'
+      ConnectionArn: !GetAtt CronConnection.Arn
+      InvocationEndpoint: !Sub '${ApiBaseUrl}/api/v1/jobs/weekly-interview-reminder'
+      HttpMethod: POST
+      InvocationRateLimitPerSecond: 1
+
+  RuleInvokeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: invoke-api-destination
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: events:InvokeApiDestination
+                Resource: !GetAtt WeeklyReminderApiDestination.Arn
+
+  WeeklyReminderRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${NamePrefix}-weekly-interview-reminder'
+      EventBusName: !Ref JobsEventBus
+      EventPattern:
+        source: [!Sub '${NamePrefix}.scheduler']
+        detail-type: [WeeklyInterviewReminder]
+      State: ENABLED
+      Targets:
+        - Id: api
+          Arn: !GetAtt WeeklyReminderApiDestination.Arn
+          RoleArn: !GetAtt RuleInvokeRole.Arn
+          Input: '{}'
+          RetryPolicy:
+            # The API skips weeks that were already notified, so retries are safe.
+            MaximumRetryAttempts: 5
+            MaximumEventAgeInSeconds: 3600
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: put-jobs-events
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: !GetAtt JobsEventBus.Arn
+
+  WeeklyReminderSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: !Sub '${NamePrefix}-weekly-interview-reminder'
+      Description: Every Monday, ask operators to edit this week's interview schedule.
+      ScheduleExpression: !Ref ScheduleExpression
+      ScheduleExpressionTimezone: !Ref ScheduleTimezone
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      State: !Ref ScheduleState
+      Target:
+        Arn: !GetAtt JobsEventBus.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        EventBridgeParameters:
+          Source: !Sub '${NamePrefix}.scheduler'
+          DetailType: WeeklyInterviewReminder
+        Input: '{}'
+        RetryPolicy:
+          MaximumRetryAttempts: 3
+          MaximumEventAgeInSeconds: 3600
+
+Outputs:
+  ScheduleName:
+    Value: !Ref WeeklyReminderSchedule
+  EventBusName:
+    Value: !Ref JobsEventBus
+  ApiDestinationArn:
+    Value: !GetAtt WeeklyReminderApiDestination.Arn

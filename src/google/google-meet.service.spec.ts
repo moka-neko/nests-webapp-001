@@ -21,6 +21,7 @@ describe('GoogleMeetService', () => {
     process.env.GOOGLE_REFRESH_TOKEN = 'refresh';
     delete process.env.GOOGLE_CALENDAR_ID;
     delete process.env.INTERVIEW_DURATION_MINUTES;
+    delete process.env.GOOGLE_SEND_CALENDAR_INVITES;
   });
 
   afterAll(() => {
@@ -52,7 +53,7 @@ describe('GoogleMeetService', () => {
     });
     const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(url).toBe(
-      'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all',
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=none',
     );
     expect(init.method).toBe('POST');
     const body = JSON.parse(init.body as string) as {
@@ -94,6 +95,20 @@ describe('GoogleMeetService', () => {
     const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(url).toContain('/events/event-1?');
     expect(init.method).toBe('PATCH');
+  });
+
+  it('GOOGLE_SEND_CALENDAR_INVITES=true なら Google の招待メールも送る', async () => {
+    process.env.GOOGLE_SEND_CALENDAR_INVITES = 'true';
+    fetchMock
+      .mockReturnValueOnce(json({ access_token: 'token' }))
+      .mockReturnValueOnce(
+        json({ id: 'event-1', hangoutLink: 'https://meet.google.com/aaa' }),
+      );
+
+    await service.createOrUpdateMeeting({ summary: '面接', start: new Date() });
+
+    const [url] = fetchMock.mock.calls[1] as [string];
+    expect(url).toContain('sendUpdates=all');
   });
 
   it('API エラー時は例外を投げる', async () => {

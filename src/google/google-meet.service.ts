@@ -49,6 +49,15 @@ export class GoogleMeetService {
     return process.env.GOOGLE_CALENDAR_ID || 'primary';
   }
 
+  /**
+   * Google からの招待メール（カレンダー通知）を送るか。
+   * 既定では送らず、URL は本アプリのメール・LINE だけで共有する。
+   * 応募者は予定の出席者には登録するので、Meet に入室しやすい状態は保たれる。
+   */
+  private get sendUpdates(): 'all' | 'none' {
+    return process.env.GOOGLE_SEND_CALENDAR_INVITES === 'true' ? 'all' : 'none';
+  }
+
   private get durationMinutes(): number {
     const value = Number(process.env.INTERVIEW_DURATION_MINUTES ?? 30);
     return Number.isFinite(value) && value > 0 ? value : 30;
@@ -73,7 +82,7 @@ export class GoogleMeetService {
     let event: CalendarEvent;
     if (input.eventId) {
       event = await this.request<CalendarEvent>(
-        `${calendarPath}/${encodeURIComponent(input.eventId)}?conferenceDataVersion=1&sendUpdates=all`,
+        `${calendarPath}/${encodeURIComponent(input.eventId)}?conferenceDataVersion=1&sendUpdates=${this.sendUpdates}`,
         accessToken,
         'PATCH',
         body,
@@ -86,7 +95,7 @@ export class GoogleMeetService {
         },
       };
       event = await this.request<CalendarEvent>(
-        `${calendarPath}?conferenceDataVersion=1&sendUpdates=all`,
+        `${calendarPath}?conferenceDataVersion=1&sendUpdates=${this.sendUpdates}`,
         accessToken,
         'POST',
         body,
