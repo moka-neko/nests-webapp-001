@@ -147,6 +147,52 @@ jobs:
           fi
           curl --fail --retry 10 --retry-delay 15 "$API_BASE_URL/health"
 
+  deploy-scheduler:
+    name: Deploy development weekly interview reminder schedule
+    runs-on: ubuntu-latest
+    needs: deploy-api
+    env:
+      AWS_ROLE_TO_ASSUME: ${{ secrets.DEV_AWS_ROLE_TO_ASSUME }}
+      CRON_SECRET: ${{ secrets.DEV_CRON_SECRET }}
+      STACK_NAME: juku-dev-weekly-interview-reminder
+      NAME_PREFIX: juku-dev
+
+    steps:
+      - name: Check settings
+        id: check
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::warning::DEV_CRON_SECRET repository secret is not set; skipping the weekly reminder schedule."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          : "${API_BASE_URL:?Set DEV_API_BASE_URL repository variable}"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        if: steps.check.outputs.skip != 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy EventBridge schedule stack
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          aws cloudformation deploy \
+            --stack-name "$STACK_NAME" \
+            --template-file infra/dev/weekly-interview-reminder.yml \
+            --capabilities CAPABILITY_IAM \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              NamePrefix="$NAME_PREFIX" \
+              ApiBaseUrl="${API_BASE_URL%/}" \
+              CronSecret="$CRON_SECRET"
+
   deploy-admin:
     name: Deploy development admin to S3
     runs-on: ubuntu-latest

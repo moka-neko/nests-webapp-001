@@ -169,6 +169,7 @@ Set these in GitHub repository settings:
 | `DEV_APP_RUNNER_SERVICE_ARN` | Existing development App Runner service ARN |
 | `DEV_SUPABASE_DATABASE_URL` | Development Supabase pooled connection URL |
 | `DEV_SUPABASE_DIRECT_URL` | Development Supabase direct/session connection URL |
+| `DEV_CRON_SECRET` | Same value as `CRON_SECRET` on App Runner. Used by the weekly reminder schedule. If unset, that job is skipped with a warning |
 
 The GitHub workflow uses OIDC. Do not store long-lived AWS access keys.
 
@@ -180,6 +181,10 @@ The development GitHub OIDC role needs permissions for:
 - App Runner `StartDeployment`
 - S3 sync to the development site buckets
 - CloudFront invalidations for development distributions
+- The weekly interview reminder stack (CloudFormation, EventBridge, Scheduler,
+  the stack's own IAM roles and the connection secret). The exact policy is in
+  `infra/dev/github-oidc-scheduler-policy.json`; replace `ACCOUNT_ID` and attach
+  it to the role in `DEV_AWS_ROLE_TO_ASSUME` as an inline policy.
 
 Scope resources to development-only ECR, App Runner, S3, and CloudFront
 resources.
@@ -264,8 +269,32 @@ There is no Lambda to deploy. The connection keeps the secret in AWS Secrets
 Manager (about USD 0.40/month); Scheduler, the rule and API destination
 invocations are negligible at one call per week.
 
-Deploy once from a shell with credentials for the development account
-(`CRON_SECRET` must be the same value as on App Runner):
+The `deploy-scheduler` job in `.github/workflows/deploy.yml` deploys the
+stack `juku-dev-weekly-interview-reminder` on every development deploy, after
+the API deploy. It reuses the GitHub OIDC role, so no IAM user or access key is
+needed. One-time setup:
+
+1. Attach `infra/dev/github-oidc-scheduler-policy.json` (with `ACCOUNT_ID`
+   replaced) to the OIDC deploy role:
+
+   ```bash
+   sed "s/ACCOUNT_ID/$(aws sts get-caller-identity --query Account --output text)/g" \
+     infra/dev/github-oidc-scheduler-policy.json > /tmp/scheduler-policy.json
+   aws iam put-role-policy \
+     --role-name <OIDC deploy role name> \
+     --policy-name weekly-interview-reminder-deploy \
+     --policy-document file:///tmp/scheduler-policy.json
+   ```
+
+2. Add the repository secret `DEV_CRON_SECRET` (same value as App Runner's
+   `CRON_SECRET`).
+3. Push to `develop` or run the workflow manually.
+
+When nothing changed, the deploy is a no-op (`--no-fail-on-empty-changeset`).
+To pause the reminder, disable the schedule in the console or set
+`ScheduleState=DISABLED` in the job's parameter overrides.
+
+Manual deploy, if ever needed (same parameters as the job):
 
 ```bash
 aws cloudformation deploy \
@@ -277,21 +306,6 @@ aws cloudformation deploy \
     ApiBaseUrl=https://dev-api.example.com \
     CronSecret="$CRON_SECRET"
 ```
-
-Run the same command again after changing the template, the API URL or the
-secret. To pause the reminder, add `ScheduleState=DISABLED` to the parameter
-overrides.
-
-To check it end to end without waiting for Monday, call the API directly:
-
-```bash
-curl -X POST "https://dev-api.example.com/api/v1/jobs/weekly-interview-reminder?force=true" \
-  -H "x-cron-secret: $CRON_SECRET"
-```
-
-The stack is deployed by hand on purpose: it changes rarely, and deploying it
-from GitHub Actions would need CloudFormation and IAM role creation rights on
-the OIDC deploy role.
 
 A long-running host such as the production ConoHa VPS can use system cron and
 `curl` against the same endpoint instead.

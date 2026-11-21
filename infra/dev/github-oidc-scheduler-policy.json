@@ -1,0 +1,111 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudFormationStack",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CreateChangeSet",
+        "cloudformation:DescribeChangeSet",
+        "cloudformation:ExecuteChangeSet",
+        "cloudformation:DeleteChangeSet",
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:GetTemplateSummary"
+      ],
+      "Resource": "arn:aws:cloudformation:*:ACCOUNT_ID:stack/juku-dev-weekly-interview-reminder/*"
+    },
+    {
+      "Sid": "StackRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:DeleteRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::ACCOUNT_ID:role/juku-dev-weekly-interview-reminder-*"
+    },
+    {
+      "Sid": "PassStackRolesToEventBridge",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::ACCOUNT_ID:role/juku-dev-weekly-interview-reminder-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": [
+            "events.amazonaws.com",
+            "scheduler.amazonaws.com"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "EventBridgeResources",
+      "Effect": "Allow",
+      "Action": [
+        "events:CreateEventBus",
+        "events:UpdateEventBus",
+        "events:DeleteEventBus",
+        "events:DescribeEventBus",
+        "events:CreateConnection",
+        "events:UpdateConnection",
+        "events:DeleteConnection",
+        "events:DescribeConnection",
+        "events:CreateApiDestination",
+        "events:UpdateApiDestination",
+        "events:DeleteApiDestination",
+        "events:DescribeApiDestination",
+        "events:PutRule",
+        "events:DeleteRule",
+        "events:DescribeRule",
+        "events:EnableRule",
+        "events:DisableRule",
+        "events:PutTargets",
+        "events:RemoveTargets",
+        "events:ListTargetsByRule",
+        "events:TagResource",
+        "events:UntagResource",
+        "events:ListTagsForResource"
+      ],
+      "Resource": [
+        "arn:aws:events:*:ACCOUNT_ID:event-bus/juku-dev-jobs",
+        "arn:aws:events:*:ACCOUNT_ID:connection/juku-dev-*",
+        "arn:aws:events:*:ACCOUNT_ID:api-destination/juku-dev-*",
+        "arn:aws:events:*:ACCOUNT_ID:rule/juku-dev-jobs/juku-dev-*"
+      ]
+    },
+    {
+      "Sid": "ConnectionSecret",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:CreateSecret",
+        "secretsmanager:UpdateSecret",
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:DeleteSecret",
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:PutSecretValue"
+      ],
+      "Resource": "arn:aws:secretsmanager:*:ACCOUNT_ID:secret:events!connection/juku-dev-*"
+    },
+    {
+      "Sid": "Schedule",
+      "Effect": "Allow",
+      "Action": [
+        "scheduler:CreateSchedule",
+        "scheduler:UpdateSchedule",
+        "scheduler:DeleteSchedule",
+        "scheduler:GetSchedule",
+        "scheduler:TagResource",
+        "scheduler:UntagResource",
+        "scheduler:ListTagsForResource"
+      ],
+      "Resource": "arn:aws:scheduler:*:ACCOUNT_ID:schedule/default/juku-dev-*"
+    }
+  ]
+}

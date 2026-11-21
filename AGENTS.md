@@ -25,7 +25,7 @@ Application management system for 友達先生日本語会話教室 (teacher / s
 
 ### External services (all optional locally)
 - LINE (`LINE_*`), SMTP mail (`MAIL_*`) and Google Meet (`GOOGLE_*`) are skipped when unconfigured: the services log `[LINE skipped]` / `[Mail skipped]` instead of sending. Google Meet issuance returns 400 and the admin UI falls back to entering the meeting URL manually.
-- Weekly interview reminder: `POST /api/v1/jobs/weekly-interview-reminder` with header `x-cron-secret: $CRON_SECRET` (`?force=true` resends in the same week). It is not scheduled in-process; on the dev AWS account it is triggered by the EventBridge stack in `infra/dev/weekly-interview-reminder.yml`. Validate that template with `cfn-lint`.
+- Weekly interview reminder: `POST /api/v1/jobs/weekly-interview-reminder` with header `x-cron-secret: $CRON_SECRET` (`?force=true` resends in the same week). It is not scheduled in-process; on the dev AWS account it is triggered by the EventBridge stack in `infra/dev/weekly-interview-reminder.yml`, deployed by the `deploy-scheduler` job in `.github/workflows/deploy.yml` (needs the `DEV_CRON_SECRET` secret and the extra OIDC role permissions in `infra/dev/github-oidc-scheduler-policy.json`). Validate the template with `cfn-lint`.
 
 ### Lint (non-obvious)
 - `npm run lint` runs `eslint ... --fix`, which **rewrites committed source files** (the repo has pre-existing prettier violations). To only check, run `npx eslint "{src,test}/**/*.ts"` without `--fix`, or lint just the files you changed.
