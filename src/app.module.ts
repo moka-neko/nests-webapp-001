@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { ApiKeyGuard } from './common/guards/api-key.guard';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { TimerexWebhookGuard } from './common/guards/timerex-webhook.guard';
+import { GoogleModule } from './google/google.module';
 import { JobsModule } from './jobs/jobs.module';
 import { LineModule } from './line/line.module';
 import { MailModule } from './mail/mail.module';
@@ -20,6 +21,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     PrismaModule,
     LineModule,
     MailModule,
+    GoogleModule,
     AdminModule,
     TeachersModule,
     StudentsModule,

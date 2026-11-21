@@ -22,7 +22,10 @@ export class StudentsService {
     const record = await this.prisma.studentApplication.create({ data: dto });
 
     await this.notifyNewApplication(record).catch((err: unknown) => {
-      this.logger.error('Failed to send new student application notification', err);
+      this.logger.error(
+        'Failed to send new student application notification',
+        err,
+      );
     });
 
     return record;
@@ -70,6 +73,7 @@ export class StudentsService {
       record.name,
       record.email,
       record.phoneNumber,
+      record.desiredLessonsPerWeek,
     );
     await this.lineService.pushMessageToGroup(message);
   }

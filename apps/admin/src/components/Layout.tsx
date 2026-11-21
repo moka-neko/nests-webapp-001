@@ -23,11 +23,14 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-6">
             <Link to="/" className="text-lg font-semibold text-slate-900">
-              塾 応募管理
+              友達先生日本語会話教室 応募管理
             </Link>
             <nav className="flex gap-4 text-sm">
               <Link to="/teachers" className="text-slate-600 hover:text-slate-900">
                 先生応募
+              </Link>
+              <Link to="/interviews" className="text-slate-600 hover:text-slate-900">
+                面接日程調整
               </Link>
               <Link to="/students" className="text-slate-600 hover:text-slate-900">
                 生徒応募

@@ -44,6 +44,12 @@ export default function StudentCompletePage() {
           <dt className="text-slate-500">氏名</dt>
           <dd className="font-medium">{data.name}</dd>
         </div>
+        {data.desiredLessonsPerWeek && (
+          <div className="mt-2">
+            <dt className="text-slate-500">受講希望回数</dt>
+            <dd className="font-medium">週{data.desiredLessonsPerWeek}回</dd>
+          </div>
+        )}
       </dl>
       <Link
         href="/"

@@ -28,6 +28,7 @@ export function StudentEditPage() {
     name: '',
     phoneNumber: '',
     nationality: '',
+    desiredLessonsPerWeek: '',
     questions: '',
   });
 
@@ -37,6 +38,9 @@ export function StudentEditPage() {
         name: data.name,
         phoneNumber: data.phoneNumber,
         nationality: data.nationality,
+        desiredLessonsPerWeek: data.desiredLessonsPerWeek
+          ? String(data.desiredLessonsPerWeek)
+          : '',
         questions: data.questions ?? '',
       });
     }
@@ -48,6 +52,9 @@ export function StudentEditPage() {
         method: 'PUT',
         body: JSON.stringify({
           ...form,
+          desiredLessonsPerWeek: form.desiredLessonsPerWeek
+            ? Number(form.desiredLessonsPerWeek)
+            : undefined,
           questions: form.questions || undefined,
         }),
       }),
@@ -124,6 +131,25 @@ export function StudentEditPage() {
             onChange={(e) => setForm({ ...form, nationality: e.target.value })}
             className="w-full rounded border border-slate-300 px-3 py-2"
           />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            受講希望回数（週あたり）
+          </label>
+          <select
+            value={form.desiredLessonsPerWeek}
+            onChange={(e) =>
+              setForm({ ...form, desiredLessonsPerWeek: e.target.value })
+            }
+            className="w-full rounded border border-slate-300 px-3 py-2"
+          >
+            <option value="">未入力</option>
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <option key={n} value={n}>
+                週{n}回
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">質問・相談内容</label>

@@ -1,9 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsEmail,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Max,
+  Min,
 } from 'class-validator';
 
 /**
@@ -16,6 +20,7 @@ import {
  *   response[3] 電話番号
  *   response[4] 国籍
  *   response[5] 質問
+ *   desiredLessonsPerWeek 受講希望回数（週あたり、追加項目）
  */
 export class CreateStudentApplicationDto {
   @IsEmail()
@@ -40,6 +45,18 @@ export class CreateStudentApplicationDto {
   @IsNotEmpty()
   @ApiProperty({ description: '国籍', example: '日本' })
   nationality: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(7)
+  @Type(() => Number)
+  @ApiProperty({
+    description: '受講希望回数（週あたりの回数、1〜7）',
+    example: 2,
+    minimum: 1,
+    maximum: 7,
+  })
+  desiredLessonsPerWeek: number;
 
   @IsString()
   @IsOptional()

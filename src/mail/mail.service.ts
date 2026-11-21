@@ -3,6 +3,7 @@ import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import {
   MAIL_SUBJECTS,
+  buildInterviewInvitationMailBody,
   buildTeacherApplicationConfirmationBody,
   buildTeacherHiredMailBody,
   buildTeacherInterviewMailBody,
@@ -33,16 +34,31 @@ export class MailService {
     return this.transporter;
   }
 
-  async sendMail(to: string, subject: string, text: string): Promise<void> {
+  async sendMail(
+    to: string | string[],
+    subject: string,
+    text: string,
+  ): Promise<void> {
+    const recipients = Array.isArray(to) ? to.join(', ') : to;
+    if (!recipients) {
+      this.logger.log(`[Mail skipped] No recipients, Subject: ${subject}`);
+      return;
+    }
     if (!this.isConfigured()) {
-      this.logger.log(`[Mail skipped] To: ${to}, Subject: ${subject}`);
+      this.logger.log(`[Mail skipped] To: ${recipients}, Subject: ${subject}`);
       return;
     }
 
     const from =
-      process.env.MAIL_FROM ?? `塾応募管理 <${process.env.MAIL_USER}>`;
+      process.env.MAIL_FROM ??
+      `友達先生日本語会話教室 <${process.env.MAIL_USER}>`;
 
-    await this.getTransporter().sendMail({ from, to, subject, text });
+    await this.getTransporter().sendMail({
+      from,
+      to: recipients,
+      subject,
+      text,
+    });
   }
 
   async sendTeacherApplicationConfirmation(email: string): Promise<void> {
@@ -74,6 +90,19 @@ export class MailService {
       email,
       MAIL_SUBJECTS.teacherRejected,
       buildTeacherRejectedMailBody(),
+    );
+  }
+
+  async sendTeacherInterviewInvitation(
+    email: string,
+    nameKanji: string,
+    scheduledAt: Date,
+    meetingUrl: string,
+  ): Promise<void> {
+    await this.sendMail(
+      email,
+      MAIL_SUBJECTS.teacherInterviewInvitation,
+      buildInterviewInvitationMailBody(nameKanji, scheduledAt, meetingUrl),
     );
   }
 }

@@ -1,4 +1,8 @@
-import { clearAccessToken, getAccessToken } from './auth';
+import {
+  clearAccessToken,
+  getAccessToken,
+  saveRedirectAfterLogin,
+} from './auth';
 import type { ApiError } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
@@ -43,6 +47,9 @@ async function handleResponse<T>(response: Response, auth: boolean): Promise<T> 
     if (response.status === 401 && auth) {
       clearAccessToken();
       if (!window.location.pathname.startsWith('/login')) {
+        saveRedirectAfterLogin(
+          `${window.location.pathname}${window.location.search}${window.location.hash}`,
+        );
         window.location.href = '/login';
       }
     }

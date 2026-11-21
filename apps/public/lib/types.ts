@@ -25,6 +25,7 @@ export interface StudentApplication {
   name: string;
   phoneNumber: string;
   nationality: string;
+  desiredLessonsPerWeek: number | null;
   questions: string | null;
   submittedAt: string;
   updatedAt: string;

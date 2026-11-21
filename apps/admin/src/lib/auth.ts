@@ -29,3 +29,19 @@ export function logout(): void {
   clearAccessToken();
   clearMfaToken();
 }
+
+const REDIRECT_KEY = 'admin_redirect_after_login';
+
+/** ログイン後に戻るパス（通知 URL から開いた場合など）を保存する */
+export function saveRedirectAfterLogin(path: string): void {
+  if (path.startsWith('/') && !path.startsWith('/login')) {
+    sessionStorage.setItem(REDIRECT_KEY, path);
+  }
+}
+
+/** 保存済みの戻り先を取り出して消す（なければ '/'） */
+export function consumeRedirectAfterLogin(): string {
+  const path = sessionStorage.getItem(REDIRECT_KEY);
+  sessionStorage.removeItem(REDIRECT_KEY);
+  return path && path.startsWith('/') && !path.startsWith('//') ? path : '/';
+}

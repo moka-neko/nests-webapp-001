@@ -13,6 +13,7 @@ export interface TeacherApplication {
   lineDisplayName: string | null;
   lineUserId: string | null;
   meetingUrl: string | null;
+  meetingEventId: string | null;
   interviewCandidateDates: string[];
   interviewScheduledAt: string | null;
   submittedAt: string;
@@ -25,9 +26,20 @@ export interface StudentApplication {
   name: string;
   phoneNumber: string;
   nationality: string;
+  desiredLessonsPerWeek: number | null;
   questions: string | null;
   submittedAt: string;
   updatedAt: string;
+}
+
+export interface WeeklyInterviewApplication extends TeacherApplication {
+  earliestCandidateDate: string;
+}
+
+export interface WeeklyInterviews {
+  weekStart: string;
+  weekEnd: string;
+  applications: WeeklyInterviewApplication[];
 }
 
 export interface AdminProfile {

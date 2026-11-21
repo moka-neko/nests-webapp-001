@@ -78,11 +78,19 @@ export class TeacherApplicationResponseDto {
 
   @ApiPropertyOptional({
     type: 'string',
-    description: '面接URL（TimeRex予約完了後に設定）',
+    description:
+      '面接URL（Google Meet 発行・手動登録・TimeRex予約完了時に設定）',
     example: 'https://meet.google.com/abc-defg-hij',
     nullable: true,
   })
   meetingUrl: string | null;
+
+  @ApiPropertyOptional({
+    type: 'string',
+    description: 'Google カレンダーの予定ID（Google Meet 発行時に設定）',
+    nullable: true,
+  })
+  meetingEventId: string | null;
 
   @ApiProperty({
     description: '面接候補日（YYYY-MM-DD、任意）',

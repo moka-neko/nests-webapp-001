@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Put,
+  Query,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -18,6 +19,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { ApiKeyGuard } from '../common/guards/api-key.guard';
@@ -27,6 +29,8 @@ import { UpdateTeacherApplicationDto } from './dto/update-teacher.dto';
 import { UpdateTeacherStatusDto } from './dto/update-teacher-status.dto';
 import { TeacherApplicationResponseDto } from './dto/teacher-application-response.dto';
 import { InterviewCandidateWindowDto } from './dto/interview-candidate-window.dto';
+import { IssueMeetingDto } from './dto/issue-meeting.dto';
+import { WeeklyInterviewsResponseDto } from './dto/weekly-interviews-response.dto';
 
 @ApiTags('teachers')
 @ApiBearerAuth('bearer')
@@ -100,6 +104,33 @@ export class TeachersController {
   }
 
   /**
+   * GET /api/v1/teachers/applications/weekly-interviews?week=YYYY-MM-DD
+   * 面接日程調整ページ（毎週月曜の通知URLの遷移先）用の応募者一覧。
+   */
+  @Get('weekly-interviews')
+  @ApiOperation({
+    summary: '週ごとの面接日程調整対象の一覧',
+    description:
+      '指定日（省略時は今日・日本時間）を含む週（月曜〜日曜）に面接候補日がある、選考中（未選考・面接実施）の応募者を候補日の早い順に返す。',
+  })
+  @ApiQuery({
+    name: 'week',
+    required: false,
+    description: '対象週に含まれる日付（YYYY-MM-DD）',
+    example: '2026-10-19',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '取得成功',
+    type: WeeklyInterviewsResponseDto,
+  })
+  async findWeeklyInterviews(
+    @Query('week') week?: string,
+  ): Promise<WeeklyInterviewsResponseDto> {
+    return this.teachersService.findWeeklyInterviews(week);
+  }
+
+  /**
    * GET /api/v1/teachers/applications/{id}
    * 先生の応募データを ID で取得する。
    */
@@ -126,6 +157,40 @@ export class TeachersController {
     @Param('id') id: string,
   ): Promise<TeacherApplicationResponseDto> {
     return this.teachersService.findOne(id);
+  }
+
+  /**
+   * POST /api/v1/teachers/applications/{id}/meeting
+   * 確定面接日時で Google Meet の URL を発行（または手動登録）し、
+   * 応募者（メール・LINE）と運営グループLINEへ通知する。
+   */
+  @Post(':id/meeting')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '面接URLの発行と通知',
+    description:
+      '確定面接日時をもとに Google カレンダーへ予定を作成して Google Meet の URL を発行し、応募者へメール（LINE連携済みならLINEも）、運営グループLINEへ通知する。発行済みの場合は同じ予定の日時を更新し、同じURLで再通知する。meetingUrl を指定すると、その URL を登録して通知する（Google 連携が未設定の場合）。',
+  })
+  @ApiParam({ name: 'id', description: '先生応募ID（UUID）' })
+  @ApiResponse({
+    status: 200,
+    description: '発行・通知に成功',
+    type: TeacherApplicationResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      '確定面接日時が未設定、Google 連携が未設定で URL 未指定、または発行に失敗',
+  })
+  @ApiResponse({
+    status: 404,
+    description: '指定したIDの応募データが存在しない',
+  })
+  async issueMeeting(
+    @Param('id') id: string,
+    @Body() dto: IssueMeetingDto,
+  ): Promise<TeacherApplicationResponseDto> {
+    return this.teachersService.issueMeeting(id, dto);
   }
 
   /**

@@ -22,6 +22,7 @@ export default function StudentApplyPage() {
     name: '',
     phoneNumber: '',
     nationality: '',
+    desiredLessonsPerWeek: '',
     questions: '',
   });
 
@@ -37,6 +38,7 @@ export default function StudentApplyPage() {
           method: 'POST',
           body: JSON.stringify({
             ...form,
+            desiredLessonsPerWeek: Number(form.desiredLessonsPerWeek),
             questions: form.questions || undefined,
           }),
         },
@@ -84,6 +86,35 @@ export default function StudentApplyPage() {
             )}
           </div>
         ))}
+        <div>
+          <label
+            htmlFor="desiredLessonsPerWeek"
+            className="mb-1 block text-sm font-medium"
+          >
+            受講希望回数（週あたり） <span className="text-red-500">*</span>
+          </label>
+          <select
+            id="desiredLessonsPerWeek"
+            required
+            value={form.desiredLessonsPerWeek}
+            onChange={(e) =>
+              setForm({ ...form, desiredLessonsPerWeek: e.target.value })
+            }
+            className="w-full rounded border border-slate-300 bg-white px-3 py-2"
+          >
+            <option value="">選択してください</option>
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <option key={n} value={n}>
+                週{n}回
+              </option>
+            ))}
+          </select>
+          {errors.desiredLessonsPerWeek && (
+            <p className="mt-1 text-sm text-red-600">
+              {errors.desiredLessonsPerWeek}
+            </p>
+          )}
+        </div>
         <div>
           <label className="mb-1 block text-sm font-medium">質問・相談内容</label>
           <textarea

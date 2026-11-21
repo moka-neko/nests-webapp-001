@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: '塾 応募フォーム',
-  description: '先生・生徒の応募受付',
+  title: '友達先生日本語会話教室 応募フォーム',
+  description: '友達先生日本語会話教室の先生・生徒の応募受付',
 };
 
 export default function RootLayout({

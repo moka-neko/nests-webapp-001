@@ -1,12 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TeacherApplicationStatus } from '@prisma/client';
 import { LineService } from '../line/line.service';
+import { MailService } from '../mail/mail.service';
 import {
-  buildAdminInterviewEditUrl,
-  buildWeeklyInterviewReminderMessages,
+  MAIL_SUBJECTS,
+  buildAdminInterviewScheduleUrl,
+  buildWeeklyInterviewReminderMessage,
 } from '../notification/notification-templates';
 import { PrismaService } from '../prisma/prisma.service';
 import { getTokyoWeekDates } from '../teachers/interview-calendar';
+import { findWeeklyInterviewApplications } from '../teachers/weekly-interviews';
 import { WeeklyInterviewReminderResponseDto } from './dto/weekly-interview-reminder-response.dto';
 
 @Injectable()
@@ -16,11 +18,13 @@ export class JobsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly lineService: LineService,
+    private readonly mailService: MailService,
   ) {}
 
   /**
-   * 今週の面接候補日がある応募者について、運営グループへ編集依頼を送る。
-   * 面接編集は応募者ごとの画面なので、名前と編集URLを1人ずつ載せる。
+   * 今週の面接候補日がある応募者がいれば、運営へ編集依頼をグループLINEとメールで送る。
+   * URL は管理画面の「面接日程調整」ページ1つだけを載せ、
+   * 開いた先で担当する応募者を選んで編集画面へ移る。
    */
   async sendWeeklyInterviewReminder(options?: {
     force?: boolean;
@@ -36,7 +40,8 @@ export class JobsService {
       notified: false,
       alreadySent: false,
       applicantCount: 0,
-      messageCount: 0,
+      mailRecipientCount: 0,
+      scheduleUrl: '',
     };
 
     const existing = await this.prisma.weeklyInterviewReminder.findUnique({
@@ -50,44 +55,26 @@ export class JobsService {
       };
     }
 
-    const weekSet = new Set(weekDates);
-    const openStatuses = new Set<TeacherApplicationStatus>([
-      TeacherApplicationStatus.PENDING,
-      TeacherApplicationStatus.INTERVIEW,
-    ]);
-    const records = await this.prisma.teacherApplication.findMany({
-      where: {
-        status: { in: [...openStatuses] },
-        interviewCandidateDates: { hasSome: weekDates },
-      },
-    });
-
-    const adminBaseUrl =
-      process.env.ADMIN_APP_BASE_URL ?? 'http://localhost:5173';
-    const applicants = records
-      .filter((record) => openStatuses.has(record.status))
-      .map((record) => ({
-        nameKanji: record.nameKanji,
-        earliest: record.interviewCandidateDates
-          .filter((date) => weekSet.has(date))
-          .sort()[0],
-        editUrl: buildAdminInterviewEditUrl(adminBaseUrl, record.id),
-      }))
-      .filter((applicant) => applicant.earliest)
-      .sort((a, b) =>
-        a.earliest === b.earliest
-          ? a.nameKanji.localeCompare(b.nameKanji, 'ja')
-          : a.earliest.localeCompare(b.earliest),
-      );
-
+    const applicants = await findWeeklyInterviewApplications(
+      this.prisma,
+      weekDates,
+    );
     if (applicants.length === 0) {
       return base;
     }
 
-    const messages = buildWeeklyInterviewReminderMessages(applicants);
-    for (const message of messages) {
-      await this.lineService.pushMessageToGroup(message);
-    }
+    const adminBaseUrl =
+      process.env.ADMIN_APP_BASE_URL ?? 'http://localhost:5173';
+    const scheduleUrl = buildAdminInterviewScheduleUrl(adminBaseUrl, weekStart);
+    const message = buildWeeklyInterviewReminderMessage(scheduleUrl);
+    const mailRecipients = await this.resolveOperatorEmails();
+
+    await this.lineService.pushMessageToGroup(message);
+    await this.mailService.sendMail(
+      mailRecipients,
+      MAIL_SUBJECTS.weeklyInterviewReminder,
+      message,
+    );
 
     await this.prisma.weeklyInterviewReminder.upsert({
       where: { weekStart },
@@ -96,14 +83,33 @@ export class JobsService {
     });
 
     this.logger.log(
-      `Weekly interview reminder sent: week=${weekStart} applicants=${applicants.length}`,
+      `Weekly interview reminder sent: week=${weekStart} applicants=${applicants.length} mails=${mailRecipients.length}`,
     );
 
     return {
       ...base,
       notified: true,
       applicantCount: applicants.length,
-      messageCount: messages.length,
+      mailRecipientCount: mailRecipients.length,
+      scheduleUrl,
     };
+  }
+
+  /**
+   * 運営のメール送信先。OPERATOR_NOTIFICATION_EMAILS（カンマ区切り）を優先し、
+   * 未設定なら管理画面の管理者アカウントのメールアドレスへ送る。
+   */
+  private async resolveOperatorEmails(): Promise<string[]> {
+    const configured = (process.env.OPERATOR_NOTIFICATION_EMAILS ?? '')
+      .split(',')
+      .map((email) => email.trim())
+      .filter(Boolean);
+    if (configured.length > 0) {
+      return [...new Set(configured)];
+    }
+    const admins = await this.prisma.adminUser.findMany({
+      select: { email: true },
+    });
+    return [...new Set(admins.map((admin) => admin.email))];
   }
 }

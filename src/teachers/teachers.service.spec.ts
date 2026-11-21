@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TeacherApplicationStatus } from '@prisma/client';
+import { GoogleMeetService } from '../google/google-meet.service';
 import { LineService } from '../line/line.service';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -22,6 +23,7 @@ describe('TeachersService', () => {
     lineDisplayName: null,
     lineUserId: null,
     meetingUrl: null,
+    meetingEventId: null,
     interviewCandidateDates: [] as string[],
     interviewScheduledAt: null,
     submittedAt: new Date('2026-06-01T10:00:00.000Z'),
@@ -48,6 +50,12 @@ describe('TeachersService', () => {
     sendTeacherInterviewNotification: jest.fn().mockResolvedValue(undefined),
     sendTeacherHiredNotification: jest.fn().mockResolvedValue(undefined),
     sendTeacherRejectedNotification: jest.fn().mockResolvedValue(undefined),
+    sendTeacherInterviewInvitation: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const googleMeetServiceMock = {
+    isConfigured: jest.fn().mockReturnValue(true),
+    createOrUpdateMeeting: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -59,6 +67,7 @@ describe('TeachersService', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: LineService, useValue: lineServiceMock },
         { provide: MailService, useValue: mailServiceMock },
+        { provide: GoogleMeetService, useValue: googleMeetServiceMock },
       ],
     }).compile();
 
@@ -254,6 +263,143 @@ describe('TeachersService', () => {
       expect(prismaMock.teacherApplication.delete).toHaveBeenCalledWith({
         where: { id: 'teacher-uuid-1' },
       });
+    });
+  });
+
+  describe('findWeeklyInterviews', () => {
+    it('指定日を含む週の選考中応募者を候補日順に返す', async () => {
+      prismaMock.teacherApplication.findMany.mockResolvedValue([
+        {
+          ...mockTeacher,
+          id: 'b',
+          nameKanji: '佐藤 花子',
+          interviewCandidateDates: ['2026-10-23'],
+        },
+        {
+          ...mockTeacher,
+          id: 'a',
+          interviewCandidateDates: ['2026-10-12', '2026-10-20'],
+        },
+      ]);
+
+      const result = await service.findWeeklyInterviews('2026-10-22');
+
+      expect(result.weekStart).toBe('2026-10-19');
+      expect(result.weekEnd).toBe('2026-10-25');
+      expect(result.applications.map((a) => a.id)).toEqual(['a', 'b']);
+      expect(result.applications[0].earliestCandidateDate).toBe('2026-10-20');
+    });
+
+    it('week の形式が不正なら BadRequestException', async () => {
+      await expect(service.findWeeklyInterviews('2026/10/22')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('issueMeeting', () => {
+    const scheduledAt = new Date('2026-10-21T05:00:00.000Z');
+    const scheduled = {
+      ...mockTeacher,
+      interviewScheduledAt: scheduledAt,
+      lineUserId: 'U-teacher',
+    };
+
+    it('Google Meet の URL を発行して保存し、応募者と運営へ通知する', async () => {
+      prismaMock.teacherApplication.findUnique.mockResolvedValue(scheduled);
+      googleMeetServiceMock.createOrUpdateMeeting.mockResolvedValue({
+        eventId: 'event-1',
+        meetingUrl: 'https://meet.google.com/abc-defg-hij',
+      });
+      prismaMock.teacherApplication.update.mockImplementation(
+        ({ data }: { data: object }) =>
+          Promise.resolve({ ...scheduled, ...data }),
+      );
+
+      const result = await service.issueMeeting(scheduled.id, {});
+
+      expect(googleMeetServiceMock.createOrUpdateMeeting).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventId: null,
+          start: scheduledAt,
+          attendeeEmail: 'yamada@example.com',
+        }),
+      );
+      expect(prismaMock.teacherApplication.update).toHaveBeenCalledWith({
+        where: { id: scheduled.id },
+        data: {
+          meetingUrl: 'https://meet.google.com/abc-defg-hij',
+          meetingEventId: 'event-1',
+        },
+      });
+      expect(result.meetingUrl).toBe('https://meet.google.com/abc-defg-hij');
+      expect(
+        mailServiceMock.sendTeacherInterviewInvitation,
+      ).toHaveBeenCalledWith(
+        'yamada@example.com',
+        '山田 太郎',
+        scheduledAt,
+        'https://meet.google.com/abc-defg-hij',
+      );
+      expect(lineServiceMock.pushMessage).toHaveBeenCalledWith(
+        'U-teacher',
+        expect.stringContaining('2026年10月21日(水) 14:00'),
+      );
+      expect(lineServiceMock.pushMessageToGroup).toHaveBeenCalledWith(
+        expect.stringContaining('【面接URL発行】'),
+      );
+    });
+
+    it('手動URLを指定した場合は Google を使わずに登録して通知する', async () => {
+      prismaMock.teacherApplication.findUnique.mockResolvedValue(scheduled);
+      prismaMock.teacherApplication.update.mockImplementation(
+        ({ data }: { data: object }) =>
+          Promise.resolve({ ...scheduled, ...data }),
+      );
+
+      await service.issueMeeting(scheduled.id, {
+        meetingUrl: 'https://meet.google.com/manual-url',
+      });
+
+      expect(
+        googleMeetServiceMock.createOrUpdateMeeting,
+      ).not.toHaveBeenCalled();
+      expect(mailServiceMock.sendTeacherInterviewInvitation).toHaveBeenCalled();
+    });
+
+    it('notify=false なら通知しない', async () => {
+      prismaMock.teacherApplication.findUnique.mockResolvedValue(scheduled);
+      prismaMock.teacherApplication.update.mockImplementation(
+        ({ data }: { data: object }) =>
+          Promise.resolve({ ...scheduled, ...data }),
+      );
+
+      await service.issueMeeting(scheduled.id, {
+        meetingUrl: 'https://meet.google.com/manual-url',
+        notify: false,
+      });
+
+      expect(
+        mailServiceMock.sendTeacherInterviewInvitation,
+      ).not.toHaveBeenCalled();
+      expect(lineServiceMock.pushMessageToGroup).not.toHaveBeenCalled();
+    });
+
+    it('確定面接日時が未設定なら BadRequestException', async () => {
+      prismaMock.teacherApplication.findUnique.mockResolvedValue(mockTeacher);
+
+      await expect(service.issueMeeting(mockTeacher.id, {})).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('Google 連携が未設定で URL 指定もなければ BadRequestException', async () => {
+      prismaMock.teacherApplication.findUnique.mockResolvedValue(scheduled);
+      googleMeetServiceMock.isConfigured.mockReturnValueOnce(false);
+
+      await expect(service.issueMeeting(scheduled.id, {})).rejects.toThrow(
+        'Google Meet 連携が未設定です',
+      );
     });
   });
 });

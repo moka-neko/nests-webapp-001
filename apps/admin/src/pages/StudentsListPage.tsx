@@ -52,6 +52,7 @@ export function StudentsListPage() {
                 <th className="px-4 py-3 font-medium">メール</th>
                 <th className="px-4 py-3 font-medium">電話番号</th>
                 <th className="px-4 py-3 font-medium">国籍</th>
+                <th className="px-4 py-3 font-medium">受講希望回数</th>
               </tr>
             </thead>
             <tbody>
@@ -71,6 +72,11 @@ export function StudentsListPage() {
                   <td className="px-4 py-3">{s.email}</td>
                   <td className="px-4 py-3">{s.phoneNumber}</td>
                   <td className="px-4 py-3">{s.nationality}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {s.desiredLessonsPerWeek
+                      ? `週${s.desiredLessonsPerWeek}回`
+                      : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

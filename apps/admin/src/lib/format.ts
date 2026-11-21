@@ -66,3 +66,19 @@ export const STATUS_CONFIRM_MESSAGES: Record<string, string> = {
   REJECTED: '不採用通知を送信します。よろしいですか？',
   PENDING: 'ステータスを未選考に戻します。よろしいですか？',
 };
+
+const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
+
+/** YYYY-MM-DD → 10/19（月） */
+export function formatYmdWithWeekday(ymd: string): string {
+  const [year, month, day] = ymd.split('-').map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return `${month}/${day}（${WEEKDAY_LABELS[weekday]}）`;
+}
+
+/** YYYY-MM-DD に日数を足す */
+export function addDaysToYmd(ymd: string, days: number): string {
+  const [year, month, day] = ymd.split('-').map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day + days));
+  return utc.toISOString().slice(0, 10);
+}

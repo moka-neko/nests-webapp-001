@@ -5,9 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TeacherApplicationStatus } from '@prisma/client';
+import { GoogleMeetService } from '../google/google-meet.service';
 import { LineService } from '../line/line.service';
 import { MailService } from '../mail/mail.service';
 import {
+  buildInterviewInvitationLineMessage,
+  buildOperatorInterviewInvitationMessage,
   buildOperatorTeacherApplicationMessage,
   buildTeacherHiredLineMessage,
   buildTeacherRejectedLineMessage,
@@ -15,14 +18,19 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTeacherApplicationDto } from './dto/create-teacher.dto';
 import { InterviewCandidateWindowDto } from './dto/interview-candidate-window.dto';
+import { IssueMeetingDto } from './dto/issue-meeting.dto';
+import { WeeklyInterviewsResponseDto } from './dto/weekly-interviews-response.dto';
 import { UpdateTeacherApplicationDto } from './dto/update-teacher.dto';
 import { UpdateTeacherStatusDto } from './dto/update-teacher-status.dto';
 import { TeacherApplicationResponseDto } from './dto/teacher-application-response.dto';
 import {
   getInterviewCandidateWindow as buildInterviewCandidateWindow,
+  getTokyoWeekDates,
+  isValidYmd,
   normalizeEditableCandidateDates,
   normalizeInterviewCandidateDates,
 } from './interview-calendar';
+import { findWeeklyInterviewApplications } from './weekly-interviews';
 
 @Injectable()
 export class TeachersService {
@@ -32,6 +40,7 @@ export class TeachersService {
     private readonly prisma: PrismaService,
     private readonly lineService: LineService,
     private readonly mailService: MailService,
+    private readonly googleMeetService: GoogleMeetService,
   ) {}
 
   /** 応募フォームに表示する面接候補日（任意・1週間） */
@@ -123,6 +132,90 @@ export class TeachersService {
     });
   }
 
+  /**
+   * 面接日程調整ページ用: 指定日（YYYY-MM-DD、省略時は今日）を含む週に
+   * 面接候補日がある選考中の応募者一覧
+   */
+  async findWeeklyInterviews(
+    week?: string,
+    now: Date = new Date(),
+  ): Promise<WeeklyInterviewsResponseDto> {
+    if (week !== undefined && !isValidYmd(week)) {
+      throw new BadRequestException(
+        'week は YYYY-MM-DD 形式で指定してください',
+      );
+    }
+    const base = week ? new Date(`${week}T12:00:00+09:00`) : now;
+    const weekDates = getTokyoWeekDates(base);
+    const applications = await findWeeklyInterviewApplications(
+      this.prisma,
+      weekDates,
+    );
+    return {
+      weekStart: weekDates[0],
+      weekEnd: weekDates[6],
+      applications,
+    };
+  }
+
+  /**
+   * 面接URLを発行（Google Meet）または手動登録し、応募者と運営へ通知する。
+   * 確定面接日時が保存されていることが前提。
+   */
+  async issueMeeting(
+    id: string,
+    dto: IssueMeetingDto,
+  ): Promise<TeacherApplicationResponseDto> {
+    const record = await this.findOneOrFail(id);
+    if (!record.interviewScheduledAt) {
+      throw new BadRequestException(
+        '確定面接日時を保存してから面接URLを発行してください',
+      );
+    }
+
+    let meetingUrl = dto.meetingUrl;
+    let meetingEventId = record.meetingEventId;
+    if (!meetingUrl) {
+      if (!this.googleMeetService.isConfigured()) {
+        throw new BadRequestException(
+          'Google Meet 連携が未設定です。面接URLを手動で入力してください',
+        );
+      }
+      try {
+        const result = await this.googleMeetService.createOrUpdateMeeting({
+          eventId: record.meetingEventId,
+          summary: `面接: ${record.nameKanji} 様`,
+          description: `友達先生日本語会話教室 先生応募の面接\n応募者: ${record.nameKanji}（${record.email}）`,
+          start: record.interviewScheduledAt,
+          attendeeEmail: record.email,
+        });
+        meetingUrl = result.meetingUrl;
+        meetingEventId = result.eventId;
+      } catch (err) {
+        this.logger.error('Failed to issue Google Meet URL', err);
+        throw new BadRequestException(
+          'Google Meet の URL 発行に失敗しました。時間をおいて再試行するか、URLを手動で入力してください',
+        );
+      }
+    }
+
+    const updated = await this.prisma.teacherApplication.update({
+      where: { id },
+      data: { meetingUrl, meetingEventId },
+    });
+
+    if (dto.notify ?? true) {
+      await this.notifyMeeting(updated).catch((err: unknown) => {
+        this.logger.error(
+          'Failed to send interview meeting notifications',
+          err,
+        );
+      });
+    }
+
+    return updated;
+  }
+
   /** API #9: 指定した先生の応募データを削除する */
   async remove(id: string): Promise<void> {
     await this.findOneOrFail(id);
@@ -166,6 +259,36 @@ export class TeachersService {
     );
     await this.lineService.pushMessageToGroup(groupMessage);
     await this.mailService.sendTeacherApplicationConfirmation(record.email);
+  }
+
+  private async notifyMeeting(
+    record: TeacherApplicationResponseDto,
+  ): Promise<void> {
+    if (!record.meetingUrl || !record.interviewScheduledAt) return;
+    const { nameKanji, interviewScheduledAt, meetingUrl } = record;
+    await this.mailService.sendTeacherInterviewInvitation(
+      record.email,
+      nameKanji,
+      interviewScheduledAt,
+      meetingUrl,
+    );
+    if (record.lineUserId) {
+      await this.lineService.pushMessage(
+        record.lineUserId,
+        buildInterviewInvitationLineMessage(
+          nameKanji,
+          interviewScheduledAt,
+          meetingUrl,
+        ),
+      );
+    }
+    await this.lineService.pushMessageToGroup(
+      buildOperatorInterviewInvitationMessage(
+        nameKanji,
+        interviewScheduledAt,
+        meetingUrl,
+      ),
+    );
   }
 
   private async notifyStatusChange(

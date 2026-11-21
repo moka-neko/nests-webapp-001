@@ -24,7 +24,7 @@ export class JobsController {
   constructor(private readonly jobsService: JobsService) {}
 
   /**
-   * 毎週月曜に運営グループへ、今週の面接日程の編集依頼を送る。
+   * 毎週月曜に運営へ（グループLINE・メール）、今週の面接日程の編集依頼を送る。
    * API プロセス単体では曜日起動できないため、EventBridge Scheduler などから呼ぶ。
    */
   @Public()
@@ -34,7 +34,7 @@ export class JobsController {
   @ApiOperation({
     summary: '今週の面接日程編集リマインド',
     description:
-      '日本時間の今週（月曜〜日曜）に面接候補日がある未確定応募（未選考・面接実施）について、運営グループLINEへ「今週の面接日程を日曜日までに編集をお願いいたします。」と、応募者ごとの氏名・面接編集画面URLを通知する。対象がいない週は送信しない。同じ週の再送は force=true のときのみ。推奨起動は Amazon EventBridge Scheduler（毎週月曜 09:00 Asia/Tokyo）からこのエンドポイントを呼ぶ方法。',
+      '日本時間の今週（月曜〜日曜）に面接候補日がある未確定応募（未選考・面接実施）について、運営グループLINEとメール（OPERATOR_NOTIFICATION_EMAILS、未設定時は管理者アカウント）へ「今週の面接日程を日曜日までに編集をお願いいたします。」と、管理画面の面接日程調整ページURL（1つ）を通知する。URL 先で担当する応募者を選び、編集画面へ移る。対象がいない週は送信しない。同じ週の再送は force=true のときのみ。推奨起動は Amazon EventBridge Scheduler（毎週月曜 09:00 Asia/Tokyo）からこのエンドポイントを呼ぶ方法。',
   })
   @ApiResponse({
     status: 200,

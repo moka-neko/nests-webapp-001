@@ -144,7 +144,7 @@ export function TeacherEditPage() {
         >
           <h2 className="text-base font-medium">面接日程</h2>
           <p className="text-sm text-slate-600">
-            応募者が選んだ候補日を確認し、確定した面接日時を入力してください。
+            応募者が選んだ候補日を確認し、確定した面接日時を入力してください。保存後、詳細画面で Google Meet の URL を発行して応募者へ通知できます。
           </p>
           <div>
             <p className="mb-1 text-sm font-medium">面接候補日</p>

@@ -1,8 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Max,
+  Min,
 } from 'class-validator';
 
 /**
@@ -25,6 +29,19 @@ export class UpdateStudentApplicationDto {
   @IsNotEmpty()
   @ApiProperty({ description: '国籍', example: '日本' })
   nationality: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(7)
+  @Type(() => Number)
+  @ApiPropertyOptional({
+    description: '受講希望回数（週あたりの回数、1〜7）',
+    example: 2,
+    minimum: 1,
+    maximum: 7,
+  })
+  desiredLessonsPerWeek?: number;
 
   @IsString()
   @IsOptional()

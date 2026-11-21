@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
-import { clearMfaToken, getMfaToken, setAccessToken } from '../lib/auth';
+import { clearMfaToken, getMfaToken, setAccessToken, consumeRedirectAfterLogin } from '../lib/auth';
 import type { LoginResponse } from '../lib/types';
 
 export function MfaPage() {
@@ -32,7 +32,7 @@ export function MfaPage() {
       if (res.accessToken) {
         setAccessToken(res.accessToken);
         clearMfaToken();
-        navigate('/');
+        navigate(consumeRedirectAfterLogin(), { replace: true });
       }
     } catch {
       setError('認証コードが正しくありません');

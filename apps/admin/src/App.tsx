@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { DashboardPage } from './pages/DashboardPage';
+import { InterviewsPage } from './pages/InterviewsPage';
 import { LoginPage } from './pages/LoginPage';
 import { MfaDisablePage } from './pages/MfaDisablePage';
 import { MfaPage } from './pages/MfaPage';
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/login/mfa" element={<MfaPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/interviews" element={<InterviewsPage />} />
             <Route path="/teachers" element={<TeachersListPage />} />
             <Route path="/teachers/:id" element={<TeacherDetailPage />} />
             <Route path="/teachers/:id/edit" element={<TeacherEditPage />} />

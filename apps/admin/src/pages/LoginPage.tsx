@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
-import { setAccessToken, setMfaToken } from '../lib/auth';
+import { setAccessToken, setMfaToken, consumeRedirectAfterLogin } from '../lib/auth';
 import type { LoginResponse } from '../lib/types';
 
 export function LoginPage() {
@@ -29,7 +29,7 @@ export function LoginPage() {
         navigate('/login/mfa');
       } else if (res.accessToken) {
         setAccessToken(res.accessToken);
-        navigate('/');
+        navigate(consumeRedirectAfterLogin(), { replace: true });
       }
     } catch (err) {
       setError(

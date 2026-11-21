@@ -31,6 +31,14 @@ export class StudentApplicationResponseDto {
   nationality: string;
 
   @ApiPropertyOptional({
+    type: 'integer',
+    description: '受講希望回数（週あたり）',
+    example: 2,
+    nullable: true,
+  })
+  desiredLessonsPerWeek: number | null;
+
+  @ApiPropertyOptional({
     type: 'string',
     description: '質問・相談内容',
     example: '週に何回授業を受けられますか？',
